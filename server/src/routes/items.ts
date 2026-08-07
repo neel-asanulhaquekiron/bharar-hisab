@@ -13,6 +13,7 @@ const itemSchema = z.object({
   totalQuantity: z.number().int().min(0),
   rate: z.number().min(0),
   rateUnit: z.enum(["DAILY", "MONTHLY"]),
+  initialCost: z.number().min(0).optional(),
 });
 
 /** quantity currently rented out per item (active + partially returned rentals) */
@@ -27,41 +28,123 @@ async function outQuantities(userId: string): Promise<Map<string, number>> {
   );
 }
 
+/** per-item investment (purchase costs) for the user */
+async function investments(userId: string): Promise<Map<string, number>> {
+  const grouped = await prisma.itemPurchase.groupBy({
+    by: ["itemId"],
+    where: { item: { userId } },
+    _sum: { totalCost: true },
+  });
+  return new Map(grouped.map((g) => [g.itemId, Number(g._sum.totalCost ?? 0)]));
+}
+
+/** per-item income (payments received on the item's rentals) for the user */
+async function incomes(userId: string): Promise<Map<string, number>> {
+  const rentals = await prisma.rental.findMany({
+    where: { userId },
+    select: { itemId: true, payments: { select: { amount: true } } },
+  });
+  const map = new Map<string, number>();
+  for (const r of rentals) {
+    const paid = r.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    map.set(r.itemId, (map.get(r.itemId) ?? 0) + paid);
+  }
+  return map;
+}
+
+function decorate(
+  item: { id: string; totalQuantity: number },
+  out: Map<string, number>,
+  invest: Map<string, number>,
+  income: Map<string, number>,
+) {
+  const investment = invest.get(item.id) ?? 0;
+  const earned = income.get(item.id) ?? 0;
+  return {
+    ...item,
+    outQuantity: out.get(item.id) ?? 0,
+    availableQuantity: item.totalQuantity - (out.get(item.id) ?? 0),
+    investment,
+    income: earned,
+    profit: earned - investment,
+  };
+}
+
 itemsRouter.get("/", async (req, res) => {
-  const [items, out] = await Promise.all([
+  const [items, out, invest, income] = await Promise.all([
     prisma.item.findMany({ where: { userId: req.userId }, orderBy: { createdAt: "desc" } }),
     outQuantities(req.userId),
+    investments(req.userId),
+    incomes(req.userId),
   ]);
-  res.json({
-    items: items.map((i) => ({
-      ...i,
-      outQuantity: out.get(i.id) ?? 0,
-      availableQuantity: i.totalQuantity - (out.get(i.id) ?? 0),
-    })),
-  });
+  res.json({ items: items.map((i) => decorate(i, out, invest, income)) });
 });
 
 itemsRouter.post("/", async (req, res) => {
-  const body = itemSchema.parse(req.body);
-  const item = await prisma.item.create({ data: { ...body, userId: req.userId } });
+  const { initialCost, ...body } = itemSchema.parse(req.body);
+  const item = await prisma.item.create({
+    data: {
+      ...body,
+      userId: req.userId,
+      ...(initialCost && initialCost > 0
+        ? {
+            purchases: {
+              create: { quantity: body.totalQuantity, totalCost: initialCost, notes: "প্রথম ক্রয়" },
+            },
+          }
+        : {}),
+    },
+  });
   res.status(201).json({ item });
 });
 
 itemsRouter.get("/:id", async (req, res) => {
+  const item = await prisma.item.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+    include: { purchases: { orderBy: { purchasedAt: "desc" } } },
+  });
+  if (!item) throw new HttpError(404, "মালামাল পাওয়া যায়নি");
+  const [out, invest, income] = await Promise.all([
+    outQuantities(req.userId),
+    investments(req.userId),
+    incomes(req.userId),
+  ]);
+  res.json({ item: decorate(item, out, invest, income) });
+});
+
+const purchaseSchema = z.object({
+  quantity: z.number().int().min(0),
+  totalCost: z.number().min(0),
+  notes: z.string().nullish(),
+});
+
+// "bought more of the same item": records the cost and increases stock
+itemsRouter.post("/:id/purchases", async (req, res) => {
+  const body = purchaseSchema.parse(req.body);
+  if (body.quantity === 0 && body.totalCost === 0) {
+    throw new HttpError(400, "পরিমাণ বা খরচ অন্তত একটি দিতে হবে");
+  }
   const item = await prisma.item.findFirst({ where: { id: req.params.id, userId: req.userId } });
   if (!item) throw new HttpError(404, "মালামাল পাওয়া যায়নি");
-  const out = await outQuantities(req.userId);
-  res.json({
-    item: {
-      ...item,
-      outQuantity: out.get(item.id) ?? 0,
-      availableQuantity: item.totalQuantity - (out.get(item.id) ?? 0),
-    },
-  });
+  const [purchase] = await prisma.$transaction([
+    prisma.itemPurchase.create({
+      data: {
+        itemId: item.id,
+        quantity: body.quantity,
+        totalCost: body.totalCost,
+        notes: body.notes ?? null,
+      },
+    }),
+    prisma.item.update({
+      where: { id: item.id },
+      data: { totalQuantity: { increment: body.quantity } },
+    }),
+  ]);
+  res.status(201).json({ purchase });
 });
 
 itemsRouter.patch("/:id", async (req, res) => {
-  const body = itemSchema.partial().parse(req.body);
+  const body = itemSchema.omit({ initialCost: true }).partial().parse(req.body);
   const { count } = await prisma.item.updateMany({
     where: { id: req.params.id, userId: req.userId },
     data: body,

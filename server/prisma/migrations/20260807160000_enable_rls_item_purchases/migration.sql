@@ -1,0 +1,1 @@
+ALTER TABLE "item_purchases" ENABLE ROW LEVEL SECURITY;

@@ -43,8 +43,21 @@ model Item {
   rateUnit      RateUnit @map("rate_unit")
   createdAt     DateTime @default(now()) @map("created_at")
   rentals       Rental[]
+  purchases     ItemPurchase[]
 
   @@map("items")
+}
+
+model ItemPurchase {
+  id          String   @id @default(uuid())
+  itemId      String   @map("item_id")
+  item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  quantity    Int
+  totalCost   Decimal  @map("total_cost") @db.Decimal(12, 2)
+  notes       String?
+  purchasedAt DateTime @default(now()) @map("purchased_at")
+
+  @@map("item_purchases")
 }
 
 model Renter {
