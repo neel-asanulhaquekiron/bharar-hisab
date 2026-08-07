@@ -71,10 +71,12 @@ model Rental {
   item               Item         @relation(fields: [itemId], references: [id], onDelete: Restrict)
   quantity           Int
   rate               Decimal      @db.Decimal(10, 2)
+  rateUnit           RateUnit     @map("rate_unit")
   startDate          DateTime     @map("start_date") @db.Date
   expectedReturnDate DateTime?    @map("expected_return_date") @db.Date
   returnedQuantity   Int          @default(0) @map("returned_quantity")
   status             RentalStatus @default(ACTIVE)
+  closedAt           DateTime?    @map("closed_at")
   notes              String?
   createdAt          DateTime     @default(now()) @map("created_at")
   payments           Payment[]
