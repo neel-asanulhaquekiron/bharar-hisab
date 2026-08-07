@@ -25,6 +25,10 @@ server/prisma/*.db
 # Supabase CLI
 supabase/.temp/
 
+# Firebase credentials — never commit
+mobile/google-services.json
+server/service-account.json
+
 # Misc
 .DS_Store
 *.log
