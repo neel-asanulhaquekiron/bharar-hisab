@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from "react-native";
 import {
   Button,
   Dialog,
@@ -72,7 +72,11 @@ export default function ItemFormScreen() {
           headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
         }}
       />
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <TextInput label="নাম" value={name} onChangeText={setName} style={styles.input} />
         <TextInput
           label="বিবরণ (ঐচ্ছিক)"
@@ -126,6 +130,7 @@ export default function ItemFormScreen() {
           </Button>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
       <Portal>
         <Dialog visible={confirmDelete} onDismiss={() => setConfirmDelete(false)}>
           <Dialog.Title>মুছে ফেলবেন?</Dialog.Title>
@@ -145,7 +150,8 @@ export default function ItemFormScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
+  flex: { flex: 1 },
+  container: { padding: 16, paddingBottom: 48 },
   input: { marginBottom: 12 },
   delete: { marginTop: 12 },
 });

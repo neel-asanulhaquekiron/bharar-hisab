@@ -2,7 +2,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Contacts from "expo-contacts";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import {
   Button,
   Divider,
@@ -106,6 +106,10 @@ export default function NewRentalScreen() {
           headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
         }}
       />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Menu
           visible={itemMenu}
@@ -260,6 +264,7 @@ export default function NewRentalScreen() {
           ভাড়া দিন
         </Button>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {datePicker && (
         <DateTimePicker
@@ -279,7 +284,8 @@ export default function NewRentalScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
+  flex: { flex: 1 },
+  container: { padding: 16, paddingBottom: 48 },
   input: { marginBottom: 12 },
   newRenterBox: { paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: "#00695C", marginBottom: 8 },
   dateRow: { gap: 8, marginBottom: 12 },
