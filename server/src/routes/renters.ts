@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { rentalFinancials } from "../lib/billing";
 import { HttpError } from "../middleware/error";
 import { requireAuth } from "../middleware/auth";
 
@@ -35,6 +36,31 @@ rentersRouter.get("/:id", async (req, res) => {
   const renter = await prisma.renter.findFirst({ where: { id: req.params.id, userId: req.userId } });
   if (!renter) throw new HttpError(404, "ভাড়াটিয়া পাওয়া যায়নি");
   res.json({ renter });
+});
+
+rentersRouter.get("/:id/summary", async (req, res) => {
+  const renter = await prisma.renter.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+    include: {
+      rentals: {
+        orderBy: { createdAt: "desc" },
+        include: { item: { select: { id: true, name: true } }, payments: true },
+      },
+    },
+  });
+  if (!renter) throw new HttpError(404, "ভাড়াটিয়া পাওয়া যায়নি");
+
+  const rentals = renter.rentals.map((r) => ({ ...r, financials: rentalFinancials(r) }));
+  const totals = rentals.reduce(
+    (acc, r) => ({
+      charge: acc.charge + r.financials.charge,
+      paid: acc.paid + r.financials.paid,
+      due: acc.due + r.financials.due,
+    }),
+    { charge: 0, paid: 0, due: 0 },
+  );
+  const { rentals: _r, ...renterOnly } = renter;
+  res.json({ renter: renterOnly, rentals, totals });
 });
 
 rentersRouter.patch("/:id", async (req, res) => {
