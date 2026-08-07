@@ -2,10 +2,12 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Redirect, Tabs } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { useAuth } from "@/lib/auth";
+import { usePushNotifications } from "@/lib/notifications";
 
 export default function TabsLayout() {
   const { user, loading } = useAuth();
   const theme = useTheme();
+  usePushNotifications(!!user);
 
   if (!loading && !user) return <Redirect href="/(auth)/login" />;
 
