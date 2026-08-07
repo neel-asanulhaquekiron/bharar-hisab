@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
-import type { Item, Renter, RenterSummary } from "./types";
+import type { DashboardSummary, Item, Rental, Renter, RenterSummary } from "./types";
 
 // ---------- items ----------
 
@@ -76,5 +76,91 @@ export function useDeleteRenter() {
   return useMutation({
     mutationFn: async (id: string) => (await api.delete(`/renters/${id}`)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["renters"] }),
+  });
+}
+
+// ---------- rentals ----------
+
+function invalidateRentalData(qc: ReturnType<typeof useQueryClient>) {
+  for (const key of ["rentals", "items", "renters", "dashboard"]) {
+    qc.invalidateQueries({ queryKey: [key] });
+  }
+}
+
+export function useRentals(status?: "OPEN" | "RETURNED") {
+  return useQuery({
+    queryKey: ["rentals", status ?? "all"],
+    queryFn: async () =>
+      (await api.get<{ rentals: Rental[] }>("/rentals", { params: { status } })).data.rentals,
+  });
+}
+
+export function useRental(id: string) {
+  return useQuery({
+    queryKey: ["rentals", "detail", id],
+    queryFn: async () => (await api.get<{ rental: Rental }>(`/rentals/${id}`)).data.rental,
+    enabled: !!id,
+  });
+}
+
+export type RentalInput = {
+  renterId: string;
+  itemId: string;
+  quantity: number;
+  rate?: number;
+  startDate?: string;
+  expectedReturnDate?: string | null;
+  notes?: string | null;
+};
+
+export function useCreateRental() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: RentalInput) => (await api.post("/rentals", input)).data,
+    onSuccess: () => invalidateRentalData(qc),
+  });
+}
+
+export function useReturnRental(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (quantity: number) =>
+      (await api.post(`/rentals/${id}/return`, { quantity })).data,
+    onSuccess: () => invalidateRentalData(qc),
+  });
+}
+
+// ---------- payments ----------
+
+export type PaymentInput = {
+  rentalId: string;
+  amount: number;
+  method?: string | null;
+  notes?: string | null;
+};
+
+export function useCreatePayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: PaymentInput) => (await api.post("/payments", input)).data,
+    onSuccess: () => invalidateRentalData(qc),
+  });
+}
+
+export function useDeletePayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => (await api.delete(`/payments/${id}`)).data,
+    onSuccess: () => invalidateRentalData(qc),
+  });
+}
+
+// ---------- dashboard ----------
+
+export function useDashboard() {
+  return useQuery({
+    queryKey: ["dashboard"],
+    queryFn: async () =>
+      (await api.get<{ summary: DashboardSummary }>("/dashboard/summary")).data.summary,
   });
 }
