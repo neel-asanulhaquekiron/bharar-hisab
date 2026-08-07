@@ -3,6 +3,7 @@ import cors from "cors";
 import { errorHandler } from "./middleware/error";
 import { authRouter } from "./routes/auth";
 import { itemsRouter } from "./routes/items";
+import { rentersRouter } from "./routes/renters";
 
 export const app = express();
 
@@ -15,5 +16,6 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/items", itemsRouter);
+app.use("/api/v1/renters", rentersRouter);
 
 app.use(errorHandler);
