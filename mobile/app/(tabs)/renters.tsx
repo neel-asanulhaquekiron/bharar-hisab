@@ -1,6 +1,6 @@
 import { router } from "expo-router";
-import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Card, Chip, FAB } from "react-native-paper";
+import { FlatList, Linking, RefreshControl, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Card, Chip, FAB, IconButton } from "react-native-paper";
 import { EmptyState } from "@/components/empty-state";
 import { bn } from "@/lib/format";
 import { useRenters } from "@/lib/queries";
@@ -11,13 +11,22 @@ function RenterCard({ renter }: { renter: Renter }) {
     <Card style={styles.card} onPress={() => router.push(`/renters/${renter.id}`)}>
       <Card.Title
         title={renter.name}
-        subtitle={renter.phone ?? renter.address ?? ""}
+        subtitle={renter.phone ? bn(renter.phone) : (renter.address ?? "")}
         titleStyle={styles.cardTitle}
-        right={() =>
-          renter.activeRentals ? (
-            <Chip compact style={styles.chip}>{`${bn(renter.activeRentals)}টি চলমান`}</Chip>
-          ) : null
-        }
+        right={() => (
+          <View style={styles.cardRight}>
+            {renter.activeRentals ? (
+              <Chip compact>{`${bn(renter.activeRentals)}টি চলমান`}</Chip>
+            ) : null}
+            {renter.phone ? (
+              <IconButton
+                icon="phone"
+                mode="contained-tonal"
+                onPress={() => Linking.openURL(`tel:${renter.phone}`)}
+              />
+            ) : null}
+          </View>
+        )}
       />
     </Card>
   );
@@ -61,6 +70,6 @@ const styles = StyleSheet.create({
   listEmpty: { flexGrow: 1 },
   card: { marginBottom: 10 },
   cardTitle: { fontFamily: "NotoSansBengali_500Medium" },
-  chip: { marginRight: 12 },
+  cardRight: { flexDirection: "row", alignItems: "center", marginRight: 4 },
   fab: { position: "absolute", right: 16, bottom: 16 },
 });

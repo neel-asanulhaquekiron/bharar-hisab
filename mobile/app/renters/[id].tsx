@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -52,7 +52,9 @@ export default function RenterDetailScreen() {
               {data.renter.phone ? (
                 <List.Item
                   title={bn(data.renter.phone)}
+                  description="কল করতে চাপ দিন"
                   left={(p) => <List.Icon {...p} icon="phone" />}
+                  onPress={() => Linking.openURL(`tel:${data.renter.phone}`)}
                 />
               ) : null}
               {data.renter.address ? (
