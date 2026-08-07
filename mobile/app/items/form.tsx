@@ -29,6 +29,9 @@ export default function ItemFormScreen() {
     existing?.rateUnit ?? "DAILY",
   );
   const [initialCost, setInitialCost] = useState("");
+  const [previousIncome, setPreviousIncome] = useState(
+    existing && Number(existing.previousIncome) > 0 ? String(existing.previousIncome) : "",
+  );
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -52,6 +55,7 @@ export default function ItemFormScreen() {
         ...(!existing && Number(initialCost) > 0
           ? { initialCost: Number(initialCost) }
           : {}),
+        previousIncome: Number(previousIncome) || 0,
       });
       if (canBackfillCost && Number(initialCost) > 0) {
         await addPurchase.mutateAsync({
@@ -133,6 +137,13 @@ export default function ItemFormScreen() {
             style={styles.input}
           />
         )}
+        <TextInput
+          label="আগের আয় (৳, অ্যাপ ব্যবহারের আগে যা আয় হয়েছে)"
+          value={previousIncome}
+          onChangeText={setPreviousIncome}
+          keyboardType="decimal-pad"
+          style={styles.input}
+        />
         <HelperText type="error" visible={!!error}>
           {error}
         </HelperText>

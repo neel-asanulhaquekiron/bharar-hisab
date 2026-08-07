@@ -19,6 +19,7 @@ export type Item = {
   totalQuantity: number;
   rate: string; // Prisma Decimal serializes as string
   rateUnit: RateUnit;
+  previousIncome: string;
   createdAt: string;
   outQuantity: number;
   availableQuantity: number;

@@ -14,6 +14,7 @@ const itemSchema = z.object({
   rate: z.number().min(0),
   rateUnit: z.enum(["DAILY", "MONTHLY"]),
   initialCost: z.number().min(0).optional(),
+  previousIncome: z.number().min(0).optional(),
 });
 
 /** quantity currently rented out per item (active + partially returned rentals) */
@@ -53,13 +54,13 @@ async function incomes(userId: string): Promise<Map<string, number>> {
 }
 
 function decorate(
-  item: { id: string; totalQuantity: number },
+  item: { id: string; totalQuantity: number; previousIncome: unknown },
   out: Map<string, number>,
   invest: Map<string, number>,
   income: Map<string, number>,
 ) {
   const investment = invest.get(item.id) ?? 0;
-  const earned = income.get(item.id) ?? 0;
+  const earned = (income.get(item.id) ?? 0) + Number(item.previousIncome ?? 0);
   return {
     ...item,
     outQuantity: out.get(item.id) ?? 0,

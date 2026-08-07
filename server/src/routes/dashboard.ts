@@ -7,7 +7,7 @@ export const dashboardRouter = Router();
 dashboardRouter.use(requireAuth);
 
 dashboardRouter.get("/summary", async (req, res) => {
-  const [rentals, investAgg] = await Promise.all([
+  const [rentals, investAgg, prevIncomeAgg] = await Promise.all([
     prisma.rental.findMany({
       where: { userId: req.userId },
       include: {
@@ -19,6 +19,10 @@ dashboardRouter.get("/summary", async (req, res) => {
     prisma.itemPurchase.aggregate({
       where: { item: { userId: req.userId } },
       _sum: { totalCost: true },
+    }),
+    prisma.item.aggregate({
+      where: { userId: req.userId },
+      _sum: { previousIncome: true },
     }),
   ]);
 
@@ -50,6 +54,7 @@ dashboardRouter.get("/summary", async (req, res) => {
     }
   }
 
+  totalIncome += Number(prevIncomeAgg._sum.previousIncome ?? 0);
   const totalInvestment = Number(investAgg._sum.totalCost ?? 0);
   res.json({
     summary: {

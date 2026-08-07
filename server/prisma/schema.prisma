@@ -39,9 +39,10 @@ model Item {
   name          String
   description   String?
   totalQuantity Int      @map("total_quantity")
-  rate          Decimal  @db.Decimal(10, 2)
-  rateUnit      RateUnit @map("rate_unit")
-  createdAt     DateTime @default(now()) @map("created_at")
+  rate           Decimal  @db.Decimal(10, 2)
+  rateUnit       RateUnit @map("rate_unit")
+  previousIncome Decimal  @default(0) @map("previous_income") @db.Decimal(12, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
   rentals       Rental[]
   purchases     ItemPurchase[]
 

@@ -26,6 +26,7 @@ export type ItemInput = {
   rate: number;
   rateUnit: "DAILY" | "MONTHLY";
   initialCost?: number;
+  previousIncome?: number;
 };
 
 export type PurchaseInput = { quantity: number; totalCost: number; notes?: string | null };
