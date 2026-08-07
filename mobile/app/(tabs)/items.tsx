@@ -4,9 +4,11 @@ import { ActivityIndicator, Card, Chip, FAB, Text } from "react-native-paper";
 import { EmptyState } from "@/components/empty-state";
 import { bn, rateUnitLabel, taka } from "@/lib/format";
 import { useItems } from "@/lib/queries";
+import { useAppTheme } from "@/lib/theme";
 import type { Item } from "@/lib/types";
 
 function ItemCard({ item }: { item: Item }) {
+  const theme = useAppTheme();
   return (
     <Card style={styles.card} onPress={() => router.push(`/items/${item.id}`)}>
       <Card.Title
@@ -24,7 +26,7 @@ function ItemCard({ item }: { item: Item }) {
           খরচ {taka(item.investment)} · আয় {taka(item.income)} ·{" "}
           <Text
             variant="bodyMedium"
-            style={item.profit >= 0 ? styles.profit : styles.loss}
+            style={{ color: item.profit >= 0 ? theme.colors.income : theme.colors.loss }}
           >
             {item.profit >= 0 ? "লাভ" : "ক্ষতি"} {taka(Math.abs(item.profit))}
           </Text>
@@ -74,7 +76,5 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: "NotoSansBengali_500Medium" },
   chips: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   finance: { marginTop: 8, opacity: 0.85 },
-  profit: { color: "#2e7d32" },
-  loss: { color: "#c62828" },
   fab: { position: "absolute", right: 16, bottom: 16 },
 });

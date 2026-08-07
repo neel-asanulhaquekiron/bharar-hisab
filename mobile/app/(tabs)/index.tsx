@@ -1,9 +1,10 @@
 import { router } from "expo-router";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Card, Text, useTheme } from "react-native-paper";
+import { ActivityIndicator, Card, Text } from "react-native-paper";
 import { bn, bnDate, taka } from "@/lib/format";
 import { useDashboard } from "@/lib/queries";
 import { useAuth } from "@/lib/auth";
+import { useAppTheme } from "@/lib/theme";
 
 function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
@@ -23,7 +24,7 @@ function StatCard({ label, value, color }: { label: string; value: string; color
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { data, isLoading, refetch, isRefetching } = useDashboard();
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   if (isLoading || !data) {
     return (
@@ -49,12 +50,12 @@ export default function DashboardScreen() {
         <StatCard
           label="মোট বাকি"
           value={taka(data.totalDue)}
-          color={data.totalDue > 0 ? "#c62828" : "#2e7d32"}
+          color={data.totalDue > 0 ? theme.colors.loss : theme.colors.income}
         />
         <StatCard
           label="মেয়াদ পার"
           value={`${bn(data.overdueCount)}টি`}
-          color={data.overdueCount > 0 ? "#c62828" : undefined}
+          color={data.overdueCount > 0 ? theme.colors.loss : undefined}
         />
       </View>
       <Card style={styles.investCard}>
@@ -70,7 +71,7 @@ export default function DashboardScreen() {
             <Text variant="labelMedium" style={styles.statLabel}>
               মোট আয়
             </Text>
-            <Text variant="titleMedium" style={styles.green}>
+            <Text variant="titleMedium" style={{ color: theme.colors.income }}>
               {taka(data.totalIncome)}
             </Text>
           </View>
@@ -80,7 +81,7 @@ export default function DashboardScreen() {
             </Text>
             <Text
               variant="titleMedium"
-              style={data.profit >= 0 ? styles.green : styles.red}
+              style={{ color: data.profit >= 0 ? theme.colors.income : theme.colors.loss }}
             >
               {taka(Math.abs(data.profit))}
             </Text>
@@ -124,8 +125,6 @@ const styles = StyleSheet.create({
   investCard: { marginBottom: 10 },
   investRow: { flexDirection: "row" },
   investBox: { flex: 1, alignItems: "center" },
-  green: { color: "#2e7d32" },
-  red: { color: "#c62828" },
   sectionTitle: { marginTop: 12, marginBottom: 8, marginLeft: 4 },
   overdueCard: { marginBottom: 10 },
   cardTitle: { fontFamily: "NotoSansBengali_500Medium" },

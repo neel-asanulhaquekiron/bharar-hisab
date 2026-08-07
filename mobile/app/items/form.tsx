@@ -13,8 +13,10 @@ import {
 import { FormScreen } from "@/components/form-screen";
 import { apiError } from "@/lib/api";
 import { useAddPurchase, useDeleteItem, useItems, useSaveItem } from "@/lib/queries";
+import { useAppTheme } from "@/lib/theme";
 
 export default function ItemFormScreen() {
+  const theme = useAppTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { data: items } = useItems();
   const existing = items?.find((i) => i.id === id);
@@ -152,7 +154,7 @@ export default function ItemFormScreen() {
         {existing && (
           <Button
             mode="outlined"
-            textColor="crimson"
+            textColor={theme.colors.error}
             style={styles.delete}
             onPress={() => setConfirmDelete(true)}
             loading={remove.isPending}
@@ -169,7 +171,7 @@ export default function ItemFormScreen() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setConfirmDelete(false)}>বাতিল</Button>
-            <Button textColor="crimson" onPress={doDelete}>
+            <Button textColor={theme.colors.error} onPress={doDelete}>
               মুছে ফেলুন
             </Button>
           </Dialog.Actions>

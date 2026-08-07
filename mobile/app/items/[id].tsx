@@ -16,6 +16,7 @@ import {
 } from "react-native-paper";
 import { apiError } from "@/lib/api";
 import { bn, bnDate, rateUnitLabel, taka } from "@/lib/format";
+import { useAppTheme } from "@/lib/theme";
 import {
   useAddPurchase,
   useDeleteItem,
@@ -26,6 +27,7 @@ import {
 import type { ItemPurchase } from "@/lib/types";
 
 export default function ItemDetailScreen() {
+  const theme = useAppTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: item, isLoading } = useItem(id);
   const addPurchase = useAddPurchase(id);
@@ -156,7 +158,7 @@ export default function ItemDetailScreen() {
             </View>
             <View style={styles.totalBox}>
               <Text variant="labelMedium">মোট আয়</Text>
-              <Text variant="titleMedium" style={styles.income}>
+              <Text variant="titleMedium" style={{ color: theme.colors.income }}>
                 {taka(item.income)}
               </Text>
             </View>
@@ -164,7 +166,7 @@ export default function ItemDetailScreen() {
               <Text variant="labelMedium">{item.profit >= 0 ? "লাভ" : "ক্ষতি"}</Text>
               <Text
                 variant="titleMedium"
-                style={item.profit >= 0 ? styles.income : styles.loss}
+                style={{ color: item.profit >= 0 ? theme.colors.income : theme.colors.loss }}
               >
                 {taka(Math.abs(item.profit))}
               </Text>
@@ -207,7 +209,7 @@ export default function ItemDetailScreen() {
             ))}
           </Card>
         ) : null}
-        {error && !buyOpen ? <Text style={styles.error}>{error}</Text> : null}
+        {error && !buyOpen ? <Text style={[styles.error, { color: theme.colors.error }]}>{error}</Text> : null}
       </ScrollView>
 
       <Portal>
@@ -227,11 +229,11 @@ export default function ItemDetailScreen() {
               onChangeText={setCost}
               keyboardType="decimal-pad"
             />
-            {error && buyOpen ? <Text style={styles.error}>{error}</Text> : null}
+            {error && buyOpen ? <Text style={[styles.error, { color: theme.colors.error }]}>{error}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
             {editing && (
-              <Button textColor="crimson" onPress={removePurchase} disabled={dialogBusy}>
+              <Button textColor={theme.colors.error} onPress={removePurchase} disabled={dialogBusy}>
                 মুছুন
               </Button>
             )}
@@ -249,12 +251,12 @@ export default function ItemDetailScreen() {
           <Dialog.Title>মুছে ফেলবেন?</Dialog.Title>
           <Dialog.Content>
             <Text>&ldquo;{item.name}&rdquo; মুছে ফেলা হবে।</Text>
-            {deleteError ? <Text style={styles.error}>{deleteError}</Text> : null}
+            {deleteError ? <Text style={[styles.error, { color: theme.colors.error }]}>{deleteError}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setConfirmDelete(false)}>বাতিল</Button>
             <Button
-              textColor="crimson"
+              textColor={theme.colors.error}
               onPress={doDeleteItem}
               loading={removeItem.isPending}
               disabled={removeItem.isPending}
@@ -277,11 +279,9 @@ const styles = StyleSheet.create({
   description: { marginTop: 8, opacity: 0.7 },
   totalsRow: { flexDirection: "row" },
   totalBox: { flex: 1, alignItems: "center" },
-  income: { color: "#2e7d32" },
-  loss: { color: "#c62828" },
   actions: { flexDirection: "row", gap: 12, justifyContent: "center", marginVertical: 8 },
   sectionTitle: { marginTop: 8, marginBottom: 8, marginLeft: 4 },
   empty: { opacity: 0.6, marginLeft: 4, marginBottom: 8 },
-  error: { color: "#c62828", marginTop: 8 },
+  error: { marginTop: 8 },
   dialogInput: { marginBottom: 12 },
 });

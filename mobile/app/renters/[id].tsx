@@ -14,8 +14,10 @@ import {
 import { apiError } from "@/lib/api";
 import { bn, bnDate, statusLabel, taka } from "@/lib/format";
 import { useDeleteRenter, useRenterSummary } from "@/lib/queries";
+import { useAppTheme } from "@/lib/theme";
 
 export default function RenterDetailScreen() {
+  const theme = useAppTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, isLoading } = useRenterSummary(id);
   const remove = useDeleteRenter();
@@ -70,7 +72,7 @@ export default function RenterDetailScreen() {
                 </View>
                 <View style={styles.totalBox}>
                   <Text variant="labelMedium">জমা</Text>
-                  <Text variant="titleMedium" style={styles.paid}>
+                  <Text variant="titleMedium" style={{ color: theme.colors.income }}>
                     {taka(data.totals.paid)}
                   </Text>
                 </View>
@@ -78,7 +80,7 @@ export default function RenterDetailScreen() {
                   <Text variant="labelMedium">বাকি</Text>
                   <Text
                     variant="titleMedium"
-                    style={data.totals.due > 0 ? styles.due : styles.paid}
+                    style={{ color: data.totals.due > 0 ? theme.colors.loss : theme.colors.income }}
                   >
                     {taka(data.totals.due)}
                   </Text>
@@ -118,7 +120,7 @@ export default function RenterDetailScreen() {
             </Card>
           ))}
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? <Text style={[styles.error, { color: theme.colors.error }]}>{error}</Text> : null}
           <View style={styles.actions}>
             <Button
               mode="outlined"
@@ -130,7 +132,7 @@ export default function RenterDetailScreen() {
             <Button
               mode="outlined"
               icon="delete"
-              textColor="crimson"
+              textColor={theme.colors.error}
               onPress={() => setConfirmDelete(true)}
             >
               মুছুন
@@ -146,7 +148,7 @@ export default function RenterDetailScreen() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setConfirmDelete(false)}>বাতিল</Button>
-            <Button textColor="crimson" onPress={doDelete}>
+            <Button textColor={theme.colors.error} onPress={doDelete}>
               মুছে ফেলুন
             </Button>
           </Dialog.Actions>
@@ -164,10 +166,8 @@ const styles = StyleSheet.create({
   chip: { marginRight: 12 },
   totalsRow: { flexDirection: "row", marginTop: 8 },
   totalBox: { flex: 1, alignItems: "center" },
-  paid: { color: "#2e7d32" },
-  due: { color: "#c62828" },
   sectionTitle: { marginTop: 8, marginBottom: 8, marginLeft: 4 },
   empty: { opacity: 0.6, marginLeft: 4, marginBottom: 8 },
-  error: { color: "#c62828", marginTop: 8 },
+  error: { marginTop: 8 },
   actions: { flexDirection: "row", gap: 12, marginTop: 16, justifyContent: "center" },
 });

@@ -17,6 +17,7 @@ import { FormScreen } from "@/components/form-screen";
 import { apiError } from "@/lib/api";
 import { bn, bnDate, rateUnitLabel, taka } from "@/lib/format";
 import { useCreateRental, useItems, useRenters, useSaveRenter } from "@/lib/queries";
+import { useAppTheme } from "@/lib/theme";
 
 function toDateOnly(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -25,6 +26,7 @@ function toDateOnly(d: Date): string {
 const NEW_RENTER = "__new__";
 
 export default function NewRentalScreen() {
+  const theme = useAppTheme();
   const { data: renters } = useRenters();
   const { data: items } = useItems();
   const create = useCreateRental();
@@ -175,7 +177,7 @@ export default function NewRentalScreen() {
         </Menu>
 
         {isNewRenter && (
-          <View style={styles.newRenterBox}>
+          <View style={[styles.newRenterBox, { borderLeftColor: theme.colors.primary }]}>
             <TextInput
               label="ভাড়াটিয়ার নাম"
               value={newName}
@@ -281,7 +283,7 @@ export default function NewRentalScreen() {
 const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 48 },
   input: { marginBottom: 12 },
-  newRenterBox: { paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: "#00695C", marginBottom: 8 },
+  newRenterBox: { paddingLeft: 8, borderLeftWidth: 2, marginBottom: 8 },
   dateRow: { gap: 8, marginBottom: 12 },
   advanceTitle: { marginBottom: 8, marginTop: 4 },
 });

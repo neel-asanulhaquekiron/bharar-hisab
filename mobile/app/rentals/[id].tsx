@@ -18,8 +18,10 @@ import {
 import { apiError } from "@/lib/api";
 import { bn, bnDate, rateUnitLabel, statusLabel, taka } from "@/lib/format";
 import { useCreatePayment, useDeletePayment, useRental, useReturnRental } from "@/lib/queries";
+import { useAppTheme } from "@/lib/theme";
 
 export default function RentalDetailScreen() {
+  const theme = useAppTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: rental, isLoading } = useRental(id);
   const doReturn = useReturnRental(id);
@@ -116,13 +118,13 @@ export default function RentalDetailScreen() {
             </View>
             <View style={styles.totalBox}>
               <Text variant="labelMedium">জমা</Text>
-              <Text variant="titleMedium" style={styles.paid}>
+              <Text variant="titleMedium" style={{ color: theme.colors.income }}>
                 {taka(fin.paid)}
               </Text>
             </View>
             <View style={styles.totalBox}>
               <Text variant="labelMedium">বাকি</Text>
-              <Text variant="titleMedium" style={fin.due > 0 ? styles.due : styles.paid}>
+              <Text variant="titleMedium" style={{ color: fin.due > 0 ? theme.colors.loss : theme.colors.income }}>
                 {taka(fin.due)}
               </Text>
             </View>
@@ -164,7 +166,7 @@ export default function RentalDetailScreen() {
             </View>
           ))}
         </Card>
-        {error && !returnOpen && !payOpen ? <Text style={styles.error}>{error}</Text> : null}
+        {error && !returnOpen && !payOpen ? <Text style={[styles.error, { color: theme.colors.error }]}>{error}</Text> : null}
       </ScrollView>
 
       <Portal>
@@ -187,7 +189,7 @@ export default function RentalDetailScreen() {
             >
               পুরোটা ফেরত নিন ({bn(remaining)}টি)
             </Button>
-            {error && returnOpen ? <Text style={styles.error}>{error}</Text> : null}
+            {error && returnOpen ? <Text style={[styles.error, { color: theme.colors.error }]}>{error}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setReturnOpen(false)}>বাতিল</Button>
@@ -235,7 +237,7 @@ export default function RentalDetailScreen() {
                 { value: "বিকাশ", label: "বিকাশ" },
               ]}
             />
-            {error && payOpen ? <Text style={styles.error}>{error}</Text> : null}
+            {error && payOpen ? <Text style={[styles.error, { color: theme.colors.error }]}>{error}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setPayOpen(false)}>বাতিল</Button>
@@ -261,12 +263,10 @@ const styles = StyleSheet.create({
   chip: { marginRight: 12 },
   totalsRow: { flexDirection: "row" },
   totalBox: { flex: 1, alignItems: "center" },
-  paid: { color: "#2e7d32" },
-  due: { color: "#c62828" },
   actions: { flexDirection: "row", gap: 12, justifyContent: "center", marginVertical: 8 },
   sectionTitle: { marginTop: 8, marginBottom: 8, marginLeft: 4 },
   empty: { opacity: 0.6, marginLeft: 4, marginBottom: 8 },
-  error: { color: "#c62828", marginTop: 8 },
+  error: { marginTop: 8 },
   dialogHint: { marginBottom: 12, opacity: 0.7 },
   dialogInput: { marginBottom: 12 },
   methodLabel: { marginBottom: 6, opacity: 0.7 },
