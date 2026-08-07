@@ -10,6 +10,7 @@ import {
   List,
   Portal,
   RadioButton,
+  SegmentedButtons,
   Text,
   TextInput,
 } from "react-native-paper";
@@ -34,6 +35,8 @@ export default function NewRentalScreen() {
   const [startDate, setStartDate] = useState(new Date());
   const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
+  const [advance, setAdvance] = useState("");
+  const [advanceMethod, setAdvanceMethod] = useState("ক্যাশ");
   const [error, setError] = useState("");
   const [picker, setPicker] = useState<"renter" | "item" | null>(null);
   const [datePicker, setDatePicker] = useState<"start" | "return" | null>(null);
@@ -94,6 +97,9 @@ export default function NewRentalScreen() {
         startDate: toDateOnly(startDate),
         expectedReturnDate: returnDate ? toDateOnly(returnDate) : null,
         notes: notes.trim() || null,
+        ...(Number(advance) > 0
+          ? { advanceAmount: Number(advance), advanceMethod }
+          : {}),
       });
       router.back();
     } catch (e) {
@@ -149,6 +155,30 @@ export default function NewRentalScreen() {
           </Button>
         </View>
         <TextInput label="নোট (ঐচ্ছিক)" value={notes} onChangeText={setNotes} multiline style={styles.input} />
+
+        <Text variant="titleSmall" style={styles.advanceTitle}>
+          অগ্রিম জমা (ঐচ্ছিক)
+        </Text>
+        <TextInput
+          label="অগ্রিম টাকার পরিমাণ (৳)"
+          value={advance}
+          onChangeText={setAdvance}
+          keyboardType="decimal-pad"
+          style={styles.input}
+        />
+        {Number(advance) > 0 && (
+          <SegmentedButtons
+            value={advanceMethod}
+            onValueChange={setAdvanceMethod}
+            buttons={[
+              { value: "ক্যাশ", label: "ক্যাশ" },
+              { value: "নগদ", label: "নগদ" },
+              { value: "বিকাশ", label: "বিকাশ" },
+            ]}
+            style={styles.input}
+          />
+        )}
+
         <HelperText type="error" visible={!!error}>
           {error}
         </HelperText>
@@ -285,6 +315,7 @@ const styles = StyleSheet.create({
   container: { padding: 16 },
   input: { marginBottom: 12 },
   dateRow: { gap: 8, marginBottom: 12 },
+  advanceTitle: { marginBottom: 8, marginTop: 4 },
   dialogScroll: { maxHeight: 400, paddingHorizontal: 0 },
   dialogEmpty: { padding: 16, opacity: 0.6 },
   error: { color: "#c62828", marginTop: 8 },

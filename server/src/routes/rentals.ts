@@ -26,6 +26,8 @@ const createSchema = z.object({
   startDate: z.coerce.date().optional(),
   expectedReturnDate: z.coerce.date().nullish(),
   notes: z.string().nullish(),
+  advanceAmount: z.number().positive().optional(),
+  advanceMethod: z.string().nullish(),
 });
 
 rentalsRouter.post("/", async (req, res) => {
@@ -58,6 +60,13 @@ rentalsRouter.post("/", async (req, res) => {
       startDate: body.startDate ?? new Date(),
       expectedReturnDate: body.expectedReturnDate ?? null,
       notes: body.notes ?? null,
+      ...(body.advanceAmount
+        ? {
+            payments: {
+              create: { amount: body.advanceAmount, method: body.advanceMethod ?? null },
+            },
+          }
+        : {}),
     },
     include: rentalInclude,
   });
