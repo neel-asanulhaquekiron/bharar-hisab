@@ -8,6 +8,7 @@ import {
   Chip,
   Dialog,
   Divider,
+  IconButton,
   List,
   Portal,
   Text,
@@ -15,7 +16,13 @@ import {
 } from "react-native-paper";
 import { apiError } from "@/lib/api";
 import { bn, bnDate, rateUnitLabel, taka } from "@/lib/format";
-import { useAddPurchase, useDeletePurchase, useItem, useUpdatePurchase } from "@/lib/queries";
+import {
+  useAddPurchase,
+  useDeleteItem,
+  useDeletePurchase,
+  useItem,
+  useUpdatePurchase,
+} from "@/lib/queries";
 import type { ItemPurchase } from "@/lib/types";
 
 export default function ItemDetailScreen() {
@@ -25,11 +32,15 @@ export default function ItemDetailScreen() {
   const updatePurchase = useUpdatePurchase(id);
   const deletePurchase = useDeletePurchase(id);
 
+  const removeItem = useDeleteItem();
+
   const [buyOpen, setBuyOpen] = useState(false);
   const [editing, setEditing] = useState<ItemPurchase | null>(null);
   const [qty, setQty] = useState("");
   const [cost, setCost] = useState("");
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   if (isLoading || !item) {
     return (
@@ -87,11 +98,35 @@ export default function ItemDetailScreen() {
     }
   };
 
+  const doDeleteItem = async () => {
+    setDeleteError("");
+    try {
+      await removeItem.mutateAsync(item.id);
+      setConfirmDelete(false);
+      router.back();
+    } catch (e) {
+      setDeleteError(apiError(e));
+    }
+  };
+
   const dialogBusy = addPurchase.isPending || updatePurchase.isPending || deletePurchase.isPending;
 
   return (
     <>
-      <Stack.Screen options={{ title: item.name }} />
+      <Stack.Screen
+        options={{
+          title: item.name,
+          headerRight: () => (
+            <IconButton
+              icon="delete-outline"
+              onPress={() => {
+                setDeleteError("");
+                setConfirmDelete(true);
+              }}
+            />
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={styles.card}>
           <Card.Title
@@ -207,6 +242,24 @@ export default function ItemDetailScreen() {
               disabled={(!qty && !cost) || dialogBusy}
             >
               {editing ? "সংরক্ষণ" : "যোগ করুন"}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog visible={confirmDelete} onDismiss={() => setConfirmDelete(false)}>
+          <Dialog.Title>মুছে ফেলবেন?</Dialog.Title>
+          <Dialog.Content>
+            <Text>&ldquo;{item.name}&rdquo; মুছে ফেলা হবে।</Text>
+            {deleteError ? <Text style={styles.error}>{deleteError}</Text> : null}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmDelete(false)}>বাতিল</Button>
+            <Button
+              textColor="crimson"
+              onPress={doDeleteItem}
+              loading={removeItem.isPending}
+              disabled={removeItem.isPending}
+            >
+              মুছে ফেলুন
             </Button>
           </Dialog.Actions>
         </Dialog>
