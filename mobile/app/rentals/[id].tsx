@@ -184,7 +184,16 @@ export default function RentalDetailScreen() {
               value={returnQty}
               onChangeText={setReturnQty}
               keyboardType="number-pad"
+              style={styles.dialogInput}
             />
+            <Button
+              mode="outlined"
+              icon="package-variant-closed-check"
+              compact
+              onPress={() => setReturnQty(String(remaining))}
+            >
+              পুরোটা ফেরত নিন ({bn(remaining)}টি)
+            </Button>
             {error && returnOpen ? <Text style={styles.error}>{error}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
