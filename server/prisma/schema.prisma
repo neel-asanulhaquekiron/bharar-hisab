@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RateUnit {
+  DAILY
+  MONTHLY
+}
+
+enum RentalStatus {
+  ACTIVE
+  PARTIAL
+  RETURNED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  items        Item[]
+  renters      Renter[]
+  rentals      Rental[]
+  deviceTokens DeviceToken[]
+
+  @@map("users")
+}
+
+model Item {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  totalQuantity Int      @map("total_quantity")
+  rate          Decimal  @db.Decimal(10, 2)
+  rateUnit      RateUnit @map("rate_unit")
+  createdAt     DateTime @default(now()) @map("created_at")
+  rentals       Rental[]
+
+  @@map("items")
+}
+
+model Renter {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  rentals   Rental[]
+
+  @@map("renters")
+}
+
+model Rental {
+  id                 String       @id @default(uuid())
+  userId             String       @map("user_id")
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  renterId           String       @map("renter_id")
+  renter             Renter       @relation(fields: [renterId], references: [id], onDelete: Restrict)
+  itemId             String       @map("item_id")
+  item               Item         @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  quantity           Int
+  rate               Decimal      @db.Decimal(10, 2)
+  startDate          DateTime     @map("start_date") @db.Date
+  expectedReturnDate DateTime?    @map("expected_return_date") @db.Date
+  returnedQuantity   Int          @default(0) @map("returned_quantity")
+  status             RentalStatus @default(ACTIVE)
+  notes              String?
+  createdAt          DateTime     @default(now()) @map("created_at")
+  payments           Payment[]
+
+  @@map("rentals")
+}
+
+model Payment {
+  id       String   @id @default(uuid())
+  rentalId String   @map("rental_id")
+  rental   Rental   @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  amount   Decimal  @db.Decimal(10, 2)
+  paidAt   DateTime @default(now()) @map("paid_at")
+  method   String?
+  notes    String?
+
+  @@map("payments")
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fcmToken  String   @unique @map("fcm_token")
+  platform  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("device_tokens")
+}
