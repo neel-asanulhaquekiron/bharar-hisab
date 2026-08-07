@@ -108,7 +108,7 @@ export default function NewRentalScreen() {
       />
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
       >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Menu
