@@ -3,6 +3,15 @@ export type RentalStatus = "ACTIVE" | "PARTIAL" | "RETURNED";
 
 export type User = { id: string; name: string; email: string };
 
+export type ItemPurchase = {
+  id: string;
+  itemId: string;
+  quantity: number;
+  totalCost: string;
+  notes: string | null;
+  purchasedAt: string;
+};
+
 export type Item = {
   id: string;
   name: string;
@@ -13,6 +22,10 @@ export type Item = {
   createdAt: string;
   outQuantity: number;
   availableQuantity: number;
+  investment: number;
+  income: number;
+  profit: number;
+  purchases?: ItemPurchase[];
 };
 
 export type Renter = {
@@ -68,6 +81,9 @@ export type DashboardSummary = {
     expectedReturnDate: string;
     due: number;
   }[];
+  totalInvestment: number;
+  totalIncome: number;
+  profit: number;
 };
 
 export type RenterSummary = {

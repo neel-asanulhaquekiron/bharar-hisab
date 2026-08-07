@@ -57,6 +57,15 @@ export default function DashboardScreen() {
           color={data.overdueCount > 0 ? "#c62828" : undefined}
         />
       </View>
+      <View style={styles.statsRow}>
+        <StatCard label="মোট বিনিয়োগ" value={taka(data.totalInvestment)} />
+        <StatCard label="মোট আয়" value={taka(data.totalIncome)} color="#2e7d32" />
+        <StatCard
+          label={data.profit >= 0 ? "লাভ" : "ক্ষতি"}
+          value={taka(Math.abs(data.profit))}
+          color={data.profit >= 0 ? "#2e7d32" : "#c62828"}
+        />
+      </View>
 
       {data.overdue.length > 0 && (
         <>

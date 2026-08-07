@@ -28,6 +28,7 @@ export default function ItemFormScreen() {
   const [rateUnit, setRateUnit] = useState<"DAILY" | "MONTHLY">(
     existing?.rateUnit ?? "DAILY",
   );
+  const [initialCost, setInitialCost] = useState("");
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -43,6 +44,9 @@ export default function ItemFormScreen() {
         totalQuantity: Number(totalQuantity),
         rate: Number(rate),
         rateUnit,
+        ...(!existing && Number(initialCost) > 0
+          ? { initialCost: Number(initialCost) }
+          : {}),
       });
       router.back();
     } catch (e) {
@@ -104,6 +108,15 @@ export default function ItemFormScreen() {
           ]}
           style={styles.input}
         />
+        {!existing && (
+          <TextInput
+            label="মোট ক্রয় খরচ (৳, ঐচ্ছিক)"
+            value={initialCost}
+            onChangeText={setInitialCost}
+            keyboardType="decimal-pad"
+            style={styles.input}
+          />
+        )}
         <HelperText type="error" visible={!!error}>
           {error}
         </HelperText>

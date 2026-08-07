@@ -11,13 +11,36 @@ export function useItems() {
   });
 }
 
+export function useItem(id: string) {
+  return useQuery({
+    queryKey: ["items", "detail", id],
+    queryFn: async () => (await api.get<{ item: Item }>(`/items/${id}`)).data.item,
+    enabled: !!id,
+  });
+}
+
 export type ItemInput = {
   name: string;
   description?: string | null;
   totalQuantity: number;
   rate: number;
   rateUnit: "DAILY" | "MONTHLY";
+  initialCost?: number;
 };
+
+export type PurchaseInput = { quantity: number; totalCost: number; notes?: string | null };
+
+export function useAddPurchase(itemId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: PurchaseInput) =>
+      (await api.post(`/items/${itemId}/purchases`, input)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["items"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
 
 export function useSaveItem(id?: string) {
   const qc = useQueryClient();

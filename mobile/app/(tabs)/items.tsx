@@ -8,19 +8,27 @@ import type { Item } from "@/lib/types";
 
 function ItemCard({ item }: { item: Item }) {
   return (
-    <Card
-      style={styles.card}
-      onPress={() => router.push({ pathname: "/items/form", params: { id: item.id } })}
-    >
+    <Card style={styles.card} onPress={() => router.push(`/items/${item.id}`)}>
       <Card.Title
         title={item.name}
         subtitle={`${taka(item.rate)} ${rateUnitLabel(item.rateUnit)}`}
         titleStyle={styles.cardTitle}
       />
-      <Card.Content style={styles.chips}>
-        <Chip compact icon="package-variant">{`মোট ${bn(item.totalQuantity)}টি`}</Chip>
-        <Chip compact icon="arrow-up-bold">{`বাইরে ${bn(item.outQuantity)}টি`}</Chip>
-        <Chip compact icon="check">{`আছে ${bn(item.availableQuantity)}টি`}</Chip>
+      <Card.Content>
+        <View style={styles.chips}>
+          <Chip compact icon="package-variant">{`মোট ${bn(item.totalQuantity)}টি`}</Chip>
+          <Chip compact icon="arrow-up-bold">{`বাইরে ${bn(item.outQuantity)}টি`}</Chip>
+          <Chip compact icon="check">{`আছে ${bn(item.availableQuantity)}টি`}</Chip>
+        </View>
+        <Text variant="bodyMedium" style={styles.finance}>
+          খরচ {taka(item.investment)} · আয় {taka(item.income)} ·{" "}
+          <Text
+            variant="bodyMedium"
+            style={item.profit >= 0 ? styles.profit : styles.loss}
+          >
+            {item.profit >= 0 ? "লাভ" : "ক্ষতি"} {taka(Math.abs(item.profit))}
+          </Text>
+        </Text>
       </Card.Content>
     </Card>
   );
@@ -65,5 +73,8 @@ const styles = StyleSheet.create({
   card: { marginBottom: 10 },
   cardTitle: { fontFamily: "NotoSansBengali_500Medium" },
   chips: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  finance: { marginTop: 8, opacity: 0.85 },
+  profit: { color: "#2e7d32" },
+  loss: { color: "#c62828" },
   fab: { position: "absolute", right: 16, bottom: 16 },
 });
