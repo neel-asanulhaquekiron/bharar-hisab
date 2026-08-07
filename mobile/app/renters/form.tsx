@@ -1,3 +1,4 @@
+import * as Contacts from "expo-contacts";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
@@ -17,6 +18,20 @@ export default function RenterFormScreen() {
   const [error, setError] = useState("");
 
   const save = useSaveRenter(id);
+
+  const pickFromContacts = async () => {
+    setError("");
+    try {
+      const contact = await Contacts.presentContactPickerAsync();
+      if (contact) {
+        if (contact.name) setName(contact.name);
+        const picked = contact.phoneNumbers?.[0]?.number;
+        if (picked) setPhone(picked.replace(/[\s-]/g, ""));
+      }
+    } catch (e) {
+      setError(apiError(e));
+    }
+  };
 
   const submit = async () => {
     setError("");
@@ -43,6 +58,14 @@ export default function RenterFormScreen() {
         }}
       />
       <ScrollView contentContainerStyle={styles.container}>
+        <Button
+          mode="outlined"
+          icon="card-account-phone"
+          onPress={pickFromContacts}
+          style={styles.input}
+        >
+          কন্টাক্ট থেকে আনুন
+        </Button>
         <TextInput label="নাম" value={name} onChangeText={setName} style={styles.input} />
         <TextInput
           label="ফোন (ঐচ্ছিক)"

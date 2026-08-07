@@ -1,4 +1,5 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Contacts from "expo-contacts";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -14,7 +15,7 @@ import {
 } from "react-native-paper";
 import { apiError } from "@/lib/api";
 import { bn, bnDate, rateUnitLabel, taka } from "@/lib/format";
-import { useCreateRental, useItems, useRenters } from "@/lib/queries";
+import { useCreateRental, useItems, useRenters, useSaveRenter } from "@/lib/queries";
 
 function toDateOnly(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -24,6 +25,7 @@ export default function NewRentalScreen() {
   const { data: renters } = useRenters();
   const { data: items } = useItems();
   const create = useCreateRental();
+  const saveRenter = useSaveRenter();
 
   const [renterId, setRenterId] = useState("");
   const [itemId, setItemId] = useState("");
@@ -36,8 +38,50 @@ export default function NewRentalScreen() {
   const [picker, setPicker] = useState<"renter" | "item" | null>(null);
   const [datePicker, setDatePicker] = useState<"start" | "return" | null>(null);
 
+  // inline "new renter" mini-form inside the picker dialog
+  const [addingRenter, setAddingRenter] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [renterError, setRenterError] = useState("");
+
   const renter = renters?.find((r) => r.id === renterId);
   const item = items?.find((i) => i.id === itemId);
+
+  const closePicker = () => {
+    setPicker(null);
+    setAddingRenter(false);
+    setRenterError("");
+  };
+
+  const pickFromContacts = async () => {
+    setRenterError("");
+    try {
+      const contact = await Contacts.presentContactPickerAsync();
+      if (contact) {
+        if (contact.name) setNewName(contact.name);
+        const phone = contact.phoneNumbers?.[0]?.number;
+        if (phone) setNewPhone(phone.replace(/[\s-]/g, ""));
+      }
+    } catch (e) {
+      setRenterError(apiError(e));
+    }
+  };
+
+  const saveNewRenter = async () => {
+    setRenterError("");
+    try {
+      const { renter: created } = await saveRenter.mutateAsync({
+        name: newName.trim(),
+        phone: newPhone.trim() || null,
+      });
+      setRenterId(created.id);
+      setNewName("");
+      setNewPhone("");
+      closePicker();
+    } catch (e) {
+      setRenterError(apiError(e));
+    }
+  };
 
   const submit = async () => {
     setError("");
@@ -97,10 +141,10 @@ export default function NewRentalScreen() {
           style={styles.input}
         />
         <View style={styles.dateRow}>
-          <Button mode="outlined" icon="calendar" onPress={() => setDatePicker("start")} style={styles.dateButton}>
+          <Button mode="outlined" icon="calendar" onPress={() => setDatePicker("start")}>
             {`শুরু: ${bnDate(startDate)}`}
           </Button>
-          <Button mode="outlined" icon="calendar-check" onPress={() => setDatePicker("return")} style={styles.dateButton}>
+          <Button mode="outlined" icon="calendar-check" onPress={() => setDatePicker("return")}>
             {returnDate ? `ফেরত: ${bnDate(returnDate)}` : "ফেরতের তারিখ (ঐচ্ছিক)"}
           </Button>
         </View>
@@ -128,55 +172,108 @@ export default function NewRentalScreen() {
       )}
 
       <Portal>
-        <Dialog visible={picker !== null} onDismiss={() => setPicker(null)}>
+        <Dialog visible={picker !== null} onDismiss={closePicker}>
           <Dialog.Title>
-            {picker === "renter" ? "ভাড়াটিয়া বাছাই করুন" : "মালামাল বাছাই করুন"}
+            {picker === "item"
+              ? "মালামাল বাছাই করুন"
+              : addingRenter
+                ? "নতুন ভাড়াটিয়া"
+                : "ভাড়াটিয়া বাছাই করুন"}
           </Dialog.Title>
-          <Dialog.ScrollArea style={styles.dialogScroll}>
-            <ScrollView>
-              {picker === "renter" &&
-                (renters?.length ? (
-                  renters.map((r) => (
-                    <RadioButton.Item
-                      key={r.id}
-                      label={r.name}
-                      value={r.id}
-                      status={renterId === r.id ? "checked" : "unchecked"}
-                      onPress={() => {
-                        setRenterId(r.id);
-                        setPicker(null);
-                      }}
-                    />
-                  ))
-                ) : (
-                  <Text style={styles.dialogEmpty}>আগে ভাড়াটিয়া যোগ করুন</Text>
-                ))}
-              {picker === "item" &&
-                (items?.length ? (
-                  items.map((i) => (
-                    <List.Item
-                      key={i.id}
-                      title={i.name}
-                      description={`আছে ${bn(i.availableQuantity)}টি · ${taka(i.rate)} ${rateUnitLabel(i.rateUnit)}`}
-                      onPress={() => {
-                        setItemId(i.id);
-                        setPicker(null);
-                      }}
-                      left={(p) => (
-                        <List.Icon
-                          {...p}
-                          icon={itemId === i.id ? "radiobox-marked" : "radiobox-blank"}
-                        />
-                      )}
-                    />
-                  ))
-                ) : (
-                  <Text style={styles.dialogEmpty}>আগে মালামাল যোগ করুন</Text>
-                ))}
-            </ScrollView>
-          </Dialog.ScrollArea>
+
+          {picker === "renter" && addingRenter ? (
+            <Dialog.Content>
+              <Button
+                mode="outlined"
+                icon="card-account-phone"
+                onPress={pickFromContacts}
+                style={styles.input}
+              >
+                কন্টাক্ট থেকে আনুন
+              </Button>
+              <TextInput
+                label="নাম"
+                value={newName}
+                onChangeText={setNewName}
+                style={styles.input}
+              />
+              <TextInput
+                label="ফোন (ঐচ্ছিক)"
+                value={newPhone}
+                onChangeText={setNewPhone}
+                keyboardType="phone-pad"
+              />
+              {renterError ? <Text style={styles.error}>{renterError}</Text> : null}
+            </Dialog.Content>
+          ) : (
+            <Dialog.ScrollArea style={styles.dialogScroll}>
+              <ScrollView>
+                {picker === "renter" &&
+                  (renters?.length ? (
+                    renters.map((r) => (
+                      <RadioButton.Item
+                        key={r.id}
+                        label={r.phone ? `${r.name} (${bn(r.phone)})` : r.name}
+                        value={r.id}
+                        status={renterId === r.id ? "checked" : "unchecked"}
+                        onPress={() => {
+                          setRenterId(r.id);
+                          closePicker();
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <Text style={styles.dialogEmpty}>
+                      কোনো ভাড়াটিয়া নেই — নিচের বাটনে চাপ দিয়ে যোগ করুন
+                    </Text>
+                  ))}
+                {picker === "item" &&
+                  (items?.length ? (
+                    items.map((i) => (
+                      <List.Item
+                        key={i.id}
+                        title={i.name}
+                        description={`আছে ${bn(i.availableQuantity)}টি · ${taka(i.rate)} ${rateUnitLabel(i.rateUnit)}`}
+                        onPress={() => {
+                          setItemId(i.id);
+                          closePicker();
+                        }}
+                        left={(p) => (
+                          <List.Icon
+                            {...p}
+                            icon={itemId === i.id ? "radiobox-marked" : "radiobox-blank"}
+                          />
+                        )}
+                      />
+                    ))
+                  ) : (
+                    <Text style={styles.dialogEmpty}>আগে মালামাল যোগ করুন</Text>
+                  ))}
+              </ScrollView>
+            </Dialog.ScrollArea>
+          )}
+
           <Dialog.Actions>
-            <Button onPress={() => setPicker(null)}>বন্ধ করুন</Button>
+            {picker === "renter" && !addingRenter && (
+              <Button icon="account-plus" onPress={() => setAddingRenter(true)}>
+                নতুন ভাড়াটিয়া
+              </Button>
+            )}
+            {picker === "renter" && addingRenter && (
+              <>
+                <Button onPress={() => setAddingRenter(false)}>পেছনে</Button>
+                <Button
+                  onPress={saveNewRenter}
+                  loading={saveRenter.isPending}
+                  disabled={!newName.trim() || saveRenter.isPending}
+                >
+                  সংরক্ষণ
+                </Button>
+              </>
+            )}
+            {(picker === "item" || (picker === "renter" && !addingRenter)) && (
+              <Button onPress={closePicker}>বন্ধ করুন</Button>
+            )}
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -188,7 +285,7 @@ const styles = StyleSheet.create({
   container: { padding: 16 },
   input: { marginBottom: 12 },
   dateRow: { gap: 8, marginBottom: 12 },
-  dateButton: {},
   dialogScroll: { maxHeight: 400, paddingHorizontal: 0 },
   dialogEmpty: { padding: 16, opacity: 0.6 },
+  error: { color: "#c62828", marginTop: 8 },
 });

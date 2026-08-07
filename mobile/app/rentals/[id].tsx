@@ -11,6 +11,7 @@ import {
   IconButton,
   List,
   Portal,
+  SegmentedButtons,
   Text,
   TextInput,
 } from "react-native-paper";
@@ -29,7 +30,7 @@ export default function RentalDetailScreen() {
   const [returnQty, setReturnQty] = useState("");
   const [payOpen, setPayOpen] = useState(false);
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("");
+  const [method, setMethod] = useState("ক্যাশ");
   const [error, setError] = useState("");
 
   if (isLoading || !rental) {
@@ -60,11 +61,11 @@ export default function RentalDetailScreen() {
       await createPayment.mutateAsync({
         rentalId: rental.id,
         amount: Number(amount),
-        method: method.trim() || null,
+        method,
       });
       setPayOpen(false);
       setAmount("");
-      setMethod("");
+      setMethod("ক্যাশ");
     } catch (e) {
       setError(apiError(e));
     }
@@ -209,10 +210,17 @@ export default function RentalDetailScreen() {
               keyboardType="decimal-pad"
               style={styles.dialogInput}
             />
-            <TextInput
-              label="মাধ্যম (নগদ/বিকাশ… ঐচ্ছিক)"
+            <Text variant="labelMedium" style={styles.methodLabel}>
+              মাধ্যম
+            </Text>
+            <SegmentedButtons
               value={method}
-              onChangeText={setMethod}
+              onValueChange={setMethod}
+              buttons={[
+                { value: "ক্যাশ", label: "ক্যাশ" },
+                { value: "নগদ", label: "নগদ" },
+                { value: "বিকাশ", label: "বিকাশ" },
+              ]}
             />
             {error && payOpen ? <Text style={styles.error}>{error}</Text> : null}
           </Dialog.Content>
@@ -248,4 +256,5 @@ const styles = StyleSheet.create({
   error: { color: "#c62828", marginTop: 8 },
   dialogHint: { marginBottom: 12, opacity: 0.7 },
   dialogInput: { marginBottom: 12 },
+  methodLabel: { marginBottom: 6, opacity: 0.7 },
 });
