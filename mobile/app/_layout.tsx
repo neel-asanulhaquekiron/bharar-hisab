@@ -9,6 +9,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { useColorScheme } from "react-native";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { PaperProvider } from "react-native-paper";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/lib/auth";
@@ -35,13 +36,15 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <PaperProvider theme={colorScheme === "dark" ? darkTheme : lightTheme}>
-          <Stack screenOptions={{ headerShown: false }} />
-          <StatusBar style="auto" />
-        </PaperProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <KeyboardProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <PaperProvider theme={colorScheme === "dark" ? darkTheme : lightTheme}>
+            <Stack screenOptions={{ headerShown: false }} />
+            <StatusBar style="auto" />
+          </PaperProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </KeyboardProvider>
   );
 }

@@ -1,13 +1,12 @@
 import React from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { type ScrollView, type StyleProp, type ViewStyle } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
-/** Keyboard-safe scrollable form container (same pattern as social-app's ScreenWrapper). */
+/**
+ * Keyboard-safe scrollable form container. Uses react-native-keyboard-controller
+ * (bundled in Expo Go SDK 54), which handles Android edge-to-edge correctly and
+ * keeps the focused input visible above the keyboard.
+ */
 export function FormScreen({
   children,
   contentStyle,
@@ -18,20 +17,14 @@ export function FormScreen({
   scrollRef?: React.RefObject<ScrollView | null>;
 }) {
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    <KeyboardAwareScrollView
+      ref={scrollRef as React.RefObject<never>}
+      bottomOffset={24}
+      contentContainerStyle={contentStyle}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={[{ flexGrow: 1 }, contentStyle]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        {children}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      {children}
+    </KeyboardAwareScrollView>
   );
 }

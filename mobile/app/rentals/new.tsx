@@ -1,8 +1,8 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Contacts from "expo-contacts";
 import { router, Stack } from "expo-router";
-import { useRef, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import { StyleSheet, View } from "react-native";
 import {
   Button,
   Divider,
@@ -45,11 +45,6 @@ export default function NewRentalScreen() {
   const [itemMenu, setItemMenu] = useState(false);
   const [renterMenu, setRenterMenu] = useState(false);
   const [datePicker, setDatePicker] = useState<"start" | "return" | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
-
-  // Edge-to-edge Android does not auto-scroll focused inputs above the
-  // keyboard, so the bottom fields scroll themselves into view on focus.
-  const scrollToEnd = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
 
   const availableItems = (items ?? []).filter((i) => i.availableQuantity > 0);
   const item = items?.find((i) => i.id === itemId);
@@ -112,7 +107,7 @@ export default function NewRentalScreen() {
           headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
         }}
       />
-      <FormScreen scrollRef={scrollRef} contentStyle={styles.container}>
+      <FormScreen contentStyle={styles.container}>
         <Menu
           visible={itemMenu}
           onDismiss={() => setItemMenu(false)}
@@ -239,7 +234,6 @@ export default function NewRentalScreen() {
           value={notes}
           onChangeText={setNotes}
           multiline
-          onFocus={scrollToEnd}
           style={styles.input}
         />
 
@@ -251,7 +245,6 @@ export default function NewRentalScreen() {
           value={advance}
           onChangeText={setAdvance}
           keyboardType="decimal-pad"
-          onFocus={scrollToEnd}
           style={styles.input}
         />
         {Number(advance) > 0 && (
