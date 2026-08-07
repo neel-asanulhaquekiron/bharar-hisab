@@ -86,13 +86,7 @@ export default function ItemFormScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: existing ? "মালামাল সম্পাদনা" : "নতুন মালামাল",
-          headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
-        }}
-      />
+      <Stack.Screen options={{ title: existing ? "মালামাল সম্পাদনা" : "নতুন মালামাল" }} />
       <FormScreen contentStyle={styles.container}>
         <TextInput label="নাম" value={name} onChangeText={setName} style={styles.input} />
         <TextInput

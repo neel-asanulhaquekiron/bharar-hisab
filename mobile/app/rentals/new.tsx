@@ -1,6 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Contacts from "expo-contacts";
-import { router, Stack } from "expo-router";
+import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
@@ -100,13 +100,6 @@ export default function NewRentalScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: "নতুন ভাড়া",
-          headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
-        }}
-      />
       <FormScreen contentStyle={styles.container}>
         <Menu
           visible={itemMenu}

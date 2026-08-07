@@ -40,7 +40,22 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <PaperProvider theme={colorScheme === "dark" ? darkTheme : lightTheme}>
-            <Stack screenOptions={{ headerShown: false }} />
+            <Stack
+              screenOptions={{
+                headerShown: true,
+                headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
+              }}
+            >
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="items/[id]" options={{ title: "মালামাল" }} />
+              <Stack.Screen name="items/form" options={{ title: "মালামাল" }} />
+              <Stack.Screen name="renters/[id]" options={{ title: "ভাড়াটিয়া" }} />
+              <Stack.Screen name="renters/form" options={{ title: "ভাড়াটিয়া" }} />
+              <Stack.Screen name="rentals/[id]" options={{ title: "ভাড়ার বিবরণ" }} />
+              <Stack.Screen name="rentals/new" options={{ title: "নতুন ভাড়া" }} />
+            </Stack>
             <StatusBar style="auto" />
           </PaperProvider>
         </AuthProvider>

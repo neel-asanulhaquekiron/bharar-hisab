@@ -91,13 +91,7 @@ export default function ItemDetailScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: item.name,
-          headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
-        }}
-      />
+      <Stack.Screen options={{ title: item.name }} />
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={styles.card}>
           <Card.Title

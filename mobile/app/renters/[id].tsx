@@ -34,13 +34,7 @@ export default function RenterDetailScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: data?.renter.name ?? "ভাড়াটিয়া",
-          headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
-        }}
-      />
+      <Stack.Screen options={{ title: data?.renter.name ?? "ভাড়াটিয়া" }} />
       {isLoading || !data ? (
         <View style={styles.center}>
           <ActivityIndicator />

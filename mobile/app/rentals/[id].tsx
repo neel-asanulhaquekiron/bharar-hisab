@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
@@ -73,13 +73,6 @@ export default function RentalDetailScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: "ভাড়ার বিবরণ",
-          headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
-        }}
-      />
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={styles.card}>
           <Card.Title

@@ -51,13 +51,7 @@ export default function RenterFormScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: existing ? "ভাড়াটিয়া সম্পাদনা" : "নতুন ভাড়াটিয়া",
-          headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
-        }}
-      />
+      <Stack.Screen options={{ title: existing ? "ভাড়াটিয়া সম্পাদনা" : "নতুন ভাড়াটিয়া" }} />
       <FormScreen contentStyle={styles.container}>
         <Button
           mode="outlined"
