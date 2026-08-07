@@ -28,6 +28,8 @@ const createSchema = z.object({
   notes: z.string().nullish(),
   advanceAmount: z.number().positive().optional(),
   advanceMethod: z.string().nullish(),
+  // historical rental recorded after the fact: already fully returned on this date
+  endDate: z.coerce.date().nullish(),
 });
 
 rentalsRouter.post("/", async (req, res) => {
@@ -39,14 +41,22 @@ rentalsRouter.post("/", async (req, res) => {
   if (!renter) throw new HttpError(404, "ভাড়াটিয়া পাওয়া যায়নি");
   if (!item) throw new HttpError(404, "মালামাল পাওয়া যায়নি");
 
-  const out = await prisma.rental.aggregate({
-    where: { itemId: item.id, status: { not: "RETURNED" } },
-    _sum: { quantity: true, returnedQuantity: true },
-  });
-  const available =
-    item.totalQuantity - ((out._sum.quantity ?? 0) - (out._sum.returnedQuantity ?? 0));
-  if (body.quantity > available) {
-    throw new HttpError(400, `পর্যাপ্ত মালামাল নেই — মাত্র ${available}টি আছে`);
+  const startDate = body.startDate ?? new Date();
+  if (body.endDate) {
+    if (body.endDate < startDate) {
+      throw new HttpError(400, "ফেরতের তারিখ শুরুর তারিখের আগে হতে পারে না");
+    }
+  } else {
+    // stock check only applies to open rentals; historical ones are already back
+    const out = await prisma.rental.aggregate({
+      where: { itemId: item.id, status: { not: "RETURNED" } },
+      _sum: { quantity: true, returnedQuantity: true },
+    });
+    const available =
+      item.totalQuantity - ((out._sum.quantity ?? 0) - (out._sum.returnedQuantity ?? 0));
+    if (body.quantity > available) {
+      throw new HttpError(400, `পর্যাপ্ত মালামাল নেই — মাত্র ${available}টি আছে`);
+    }
   }
 
   const rental = await prisma.rental.create({
@@ -57,9 +67,16 @@ rentalsRouter.post("/", async (req, res) => {
       quantity: body.quantity,
       rate: body.rate ?? item.rate,
       rateUnit: item.rateUnit,
-      startDate: body.startDate ?? new Date(),
-      expectedReturnDate: body.expectedReturnDate ?? null,
+      startDate,
+      expectedReturnDate: body.endDate ? null : (body.expectedReturnDate ?? null),
       notes: body.notes ?? null,
+      ...(body.endDate
+        ? {
+            returnedQuantity: body.quantity,
+            status: "RETURNED" as const,
+            closedAt: body.endDate,
+          }
+        : {}),
       ...(body.advanceAmount
         ? {
             payments: {

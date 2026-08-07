@@ -156,6 +156,7 @@ export type RentalInput = {
   notes?: string | null;
   advanceAmount?: number;
   advanceMethod?: string | null;
+  endDate?: string;
 };
 
 export function useCreateRental() {

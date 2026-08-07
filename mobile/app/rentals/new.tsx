@@ -9,6 +9,7 @@ import {
   HelperText,
   Menu,
   SegmentedButtons,
+  Switch,
   Text,
   TextInput,
   TouchableRipple,
@@ -38,6 +39,7 @@ export default function NewRentalScreen() {
   const [rate, setRate] = useState("");
   const [startDate, setStartDate] = useState(new Date());
   const [returnDate, setReturnDate] = useState<Date | null>(null);
+  const [past, setPast] = useState(false);
   const [notes, setNotes] = useState("");
   const [advance, setAdvance] = useState("");
   const [advanceMethod, setAdvanceMethod] = useState("ক্যাশ");
@@ -82,7 +84,8 @@ export default function NewRentalScreen() {
         quantity: Number(quantity),
         rate: rate === "" ? undefined : Number(rate),
         startDate: toDateOnly(startDate),
-        expectedReturnDate: returnDate ? toDateOnly(returnDate) : null,
+        expectedReturnDate: !past && returnDate ? toDateOnly(returnDate) : null,
+        ...(past && returnDate ? { endDate: toDateOnly(returnDate) } : {}),
         notes: notes.trim() || null,
         ...(Number(advance) > 0
           ? { advanceAmount: Number(advance), advanceMethod }
@@ -95,7 +98,7 @@ export default function NewRentalScreen() {
   };
 
   const renterValid = isNewRenter ? newName.trim() && newPhone.trim() : !!renter;
-  const valid = itemId && renterValid && Number(quantity) >= 1;
+  const valid = itemId && renterValid && Number(quantity) >= 1 && (!past || !!returnDate);
   const busy = create.isPending || saveRenter.isPending;
 
   return (
@@ -221,12 +224,24 @@ export default function NewRentalScreen() {
           placeholder={item ? String(item.rate) : ""}
           style={styles.input}
         />
+        <View style={styles.switchRow}>
+          <Text variant="bodyMedium" style={styles.switchLabel}>
+            আগের ভাড়া — ইতিমধ্যে ফেরত হয়ে গেছে
+          </Text>
+          <Switch value={past} onValueChange={setPast} />
+        </View>
         <View style={styles.dateRow}>
           <Button mode="outlined" icon="calendar" onPress={() => setDatePicker("start")}>
             {`শুরু: ${bnDate(startDate)}`}
           </Button>
           <Button mode="outlined" icon="calendar-check" onPress={() => setDatePicker("return")}>
-            {returnDate ? `ফেরত: ${bnDate(returnDate)}` : "ফেরতের তারিখ (ঐচ্ছিক)"}
+            {past
+              ? returnDate
+                ? `ফেরত হয়েছে: ${bnDate(returnDate)}`
+                : "কবে ফেরত হয়েছে?"
+              : returnDate
+                ? `ফেরত: ${bnDate(returnDate)}`
+                : "ফেরতের তারিখ (ঐচ্ছিক)"}
           </Button>
         </View>
         <TextInput
@@ -238,10 +253,10 @@ export default function NewRentalScreen() {
         />
 
         <Text variant="titleSmall" style={styles.advanceTitle}>
-          অগ্রিম জমা (ঐচ্ছিক)
+          {past ? "টাকা জমা (মোট যা পেয়েছেন, ঐচ্ছিক)" : "অগ্রিম জমা (ঐচ্ছিক)"}
         </Text>
         <TextInput
-          label="অগ্রিম টাকার পরিমাণ (৳)"
+          label={past ? "জমা টাকার পরিমাণ (৳)" : "অগ্রিম টাকার পরিমাণ (৳)"}
           value={advance}
           onChangeText={setAdvance}
           keyboardType="decimal-pad"
@@ -289,6 +304,8 @@ const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 48 },
   input: { marginBottom: 12 },
   newRenterBox: { paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: "#00695C", marginBottom: 8 },
+  switchRow: { flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 8 },
+  switchLabel: { flex: 1 },
   dateRow: { gap: 8, marginBottom: 12 },
   advanceTitle: { marginBottom: 8, marginTop: 4 },
 });
