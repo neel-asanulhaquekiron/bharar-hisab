@@ -22,6 +22,9 @@ build/
 # Prisma
 server/prisma/*.db
 
+# Supabase CLI
+supabase/.temp/
+
 # Misc
 .DS_Store
 *.log
