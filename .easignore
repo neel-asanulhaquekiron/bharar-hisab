@@ -1,0 +1,21 @@
+# EAS upload rules (replaces .gitignore for EAS Build archives).
+# Mirrors .gitignore EXCEPT mobile/google-services.json, which the Android
+# build needs and therefore must be uploaded.
+node_modules/
+.env
+.env.*
+!.env.example
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+build/
+server/prisma/*.db
+supabase/.temp/
+server/service-account.json
+.DS_Store
+*.log
