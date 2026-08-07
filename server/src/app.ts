@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { errorHandler } from "./middleware/error";
+import { authRouter } from "./routes/auth";
 
 export const app = express();
 
@@ -11,6 +12,6 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, app: "bharar-hisab", time: new Date().toISOString() });
 });
 
-// API routes are mounted under /api/v1 as they are built (auth, items, renters, ...)
+app.use("/api/v1/auth", authRouter);
 
 app.use(errorHandler);
