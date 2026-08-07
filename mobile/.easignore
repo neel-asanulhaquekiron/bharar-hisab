@@ -1,0 +1,10 @@
+# Same as .gitignore, EXCEPT google-services.json must be uploaded to EAS
+# (it is gitignored, but the Android build needs it).
+node_modules/
+.expo/
+dist/
+web-build/
+.env
+.env.*
+.DS_Store
+*.log
