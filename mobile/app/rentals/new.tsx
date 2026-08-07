@@ -2,7 +2,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Contacts from "expo-contacts";
 import { router, Stack } from "expo-router";
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
   Button,
   Divider,
@@ -13,6 +13,7 @@ import {
   TextInput,
   TouchableRipple,
 } from "react-native-paper";
+import { FormScreen } from "@/components/form-screen";
 import { apiError } from "@/lib/api";
 import { bn, bnDate, rateUnitLabel, taka } from "@/lib/format";
 import { useCreateRental, useItems, useRenters, useSaveRenter } from "@/lib/queries";
@@ -111,11 +112,7 @@ export default function NewRentalScreen() {
           headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
         }}
       />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior="padding"
-      >
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <FormScreen scrollRef={scrollRef} contentStyle={styles.container}>
         <Menu
           visible={itemMenu}
           onDismiss={() => setItemMenu(false)}
@@ -276,8 +273,7 @@ export default function NewRentalScreen() {
         <Button mode="contained" onPress={submit} loading={busy} disabled={!valid || busy}>
           ভাড়া দিন
         </Button>
-      </ScrollView>
-      </KeyboardAvoidingView>
+      </FormScreen>
 
       {datePicker && (
         <DateTimePicker
@@ -297,7 +293,6 @@ export default function NewRentalScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   container: { padding: 16, paddingBottom: 48 },
   input: { marginBottom: 12 },
   newRenterBox: { paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: "#00695C", marginBottom: 8 },

@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import {
   Button,
   Dialog,
@@ -10,6 +10,7 @@ import {
   Text,
   TextInput,
 } from "react-native-paper";
+import { FormScreen } from "@/components/form-screen";
 import { apiError } from "@/lib/api";
 import { useDeleteItem, useItems, useSaveItem } from "@/lib/queries";
 
@@ -72,11 +73,7 @@ export default function ItemFormScreen() {
           headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
         }}
       />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior="padding"
-      >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <FormScreen contentStyle={styles.container}>
         <TextInput label="নাম" value={name} onChangeText={setName} style={styles.input} />
         <TextInput
           label="বিবরণ (ঐচ্ছিক)"
@@ -129,8 +126,7 @@ export default function ItemFormScreen() {
             মুছে ফেলুন
           </Button>
         )}
-      </ScrollView>
-      </KeyboardAvoidingView>
+      </FormScreen>
       <Portal>
         <Dialog visible={confirmDelete} onDismiss={() => setConfirmDelete(false)}>
           <Dialog.Title>মুছে ফেলবেন?</Dialog.Title>
@@ -150,7 +146,6 @@ export default function ItemFormScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   container: { padding: 16, paddingBottom: 48 },
   input: { marginBottom: 12 },
   delete: { marginTop: 12 },

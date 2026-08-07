@@ -1,8 +1,9 @@
 import * as Contacts from "expo-contacts";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { Button, HelperText, TextInput } from "react-native-paper";
+import { FormScreen } from "@/components/form-screen";
 import { apiError } from "@/lib/api";
 import { useRenters, useSaveRenter } from "@/lib/queries";
 
@@ -57,11 +58,7 @@ export default function RenterFormScreen() {
           headerTitleStyle: { fontFamily: "NotoSansBengali_500Medium" },
         }}
       />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior="padding"
-      >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <FormScreen contentStyle={styles.container}>
         <Button
           mode="outlined"
           icon="card-account-phone"
@@ -102,14 +99,12 @@ export default function RenterFormScreen() {
         >
           সংরক্ষণ করুন
         </Button>
-      </ScrollView>
-      </KeyboardAvoidingView>
+      </FormScreen>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   container: { padding: 16, paddingBottom: 48 },
   input: { marginBottom: 12 },
 });
