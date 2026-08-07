@@ -1,0 +1,77 @@
+export type RateUnit = "DAILY" | "MONTHLY";
+export type RentalStatus = "ACTIVE" | "PARTIAL" | "RETURNED";
+
+export type User = { id: string; name: string; email: string };
+
+export type Item = {
+  id: string;
+  name: string;
+  description: string | null;
+  totalQuantity: number;
+  rate: string; // Prisma Decimal serializes as string
+  rateUnit: RateUnit;
+  createdAt: string;
+  outQuantity: number;
+  availableQuantity: number;
+};
+
+export type Renter = {
+  id: string;
+  name: string;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
+  createdAt: string;
+  activeRentals?: number;
+};
+
+export type Financials = { periods: number; charge: number; paid: number; due: number };
+
+export type Rental = {
+  id: string;
+  quantity: number;
+  rate: string;
+  rateUnit: RateUnit;
+  startDate: string;
+  expectedReturnDate: string | null;
+  returnedQuantity: number;
+  status: RentalStatus;
+  closedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  item: { id: string; name: string; rateUnit?: RateUnit };
+  renter: { id: string; name: string; phone?: string | null };
+  payments: Payment[];
+  financials: Financials;
+};
+
+export type Payment = {
+  id: string;
+  rentalId: string;
+  amount: string;
+  paidAt: string;
+  method: string | null;
+  notes: string | null;
+  rental?: { id: string; item: { name: string }; renter: { id: string; name: string } };
+};
+
+export type DashboardSummary = {
+  activeRentals: number;
+  unitsOut: number;
+  totalDue: number;
+  overdueCount: number;
+  overdue: {
+    id: string;
+    renter: { id: string; name: string; phone: string | null };
+    item: { id: string; name: string };
+    quantityOut: number;
+    expectedReturnDate: string;
+    due: number;
+  }[];
+};
+
+export type RenterSummary = {
+  renter: Renter;
+  rentals: Rental[];
+  totals: { charge: number; paid: number; due: number };
+};

@@ -1,10 +1,10 @@
 import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 
-export default function DashboardScreen() {
+export default function RentalsScreen() {
   return (
     <View style={styles.container}>
-      <Text variant="bodyLarge">ড্যাশবোর্ড শীঘ্রই আসছে…</Text>
+      <Text variant="bodyLarge">ভাড়ার তালিকা শীঘ্রই আসছে…</Text>
     </View>
   );
 }
