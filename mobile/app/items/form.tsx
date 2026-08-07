@@ -12,7 +12,7 @@ import {
 } from "react-native-paper";
 import { FormScreen } from "@/components/form-screen";
 import { apiError } from "@/lib/api";
-import { useDeleteItem, useItems, useSaveItem } from "@/lib/queries";
+import { useAddPurchase, useDeleteItem, useItems, useSaveItem } from "@/lib/queries";
 
 export default function ItemFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -34,6 +34,11 @@ export default function ItemFormScreen() {
 
   const save = useSaveItem(id);
   const remove = useDeleteItem();
+  const addPurchase = useAddPurchase(id ?? "");
+
+  // Items created before cost tracking have no purchase record; the edit form
+  // lets the user backfill it once.
+  const canBackfillCost = !!existing && existing.investment === 0;
 
   const submit = async () => {
     setError("");
@@ -48,6 +53,13 @@ export default function ItemFormScreen() {
           ? { initialCost: Number(initialCost) }
           : {}),
       });
+      if (canBackfillCost && Number(initialCost) > 0) {
+        await addPurchase.mutateAsync({
+          quantity: 0,
+          totalCost: Number(initialCost),
+          notes: "আগের খরচ",
+        });
+      }
       router.back();
     } catch (e) {
       setError(apiError(e));
@@ -108,9 +120,13 @@ export default function ItemFormScreen() {
           ]}
           style={styles.input}
         />
-        {!existing && (
+        {(!existing || canBackfillCost) && (
           <TextInput
-            label="মোট ক্রয় খরচ (৳, ঐচ্ছিক)"
+            label={
+              existing
+                ? "মোট ক্রয় খরচ (৳) — আগে যোগ করা হয়নি"
+                : "মোট ক্রয় খরচ (৳, ঐচ্ছিক)"
+            }
             value={initialCost}
             onChangeText={setInitialCost}
             keyboardType="decimal-pad"

@@ -15,14 +15,18 @@ import {
 } from "react-native-paper";
 import { apiError } from "@/lib/api";
 import { bn, bnDate, rateUnitLabel, taka } from "@/lib/format";
-import { useAddPurchase, useItem } from "@/lib/queries";
+import { useAddPurchase, useDeletePurchase, useItem, useUpdatePurchase } from "@/lib/queries";
+import type { ItemPurchase } from "@/lib/types";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: item, isLoading } = useItem(id);
   const addPurchase = useAddPurchase(id);
+  const updatePurchase = useUpdatePurchase(id);
+  const deletePurchase = useDeletePurchase(id);
 
   const [buyOpen, setBuyOpen] = useState(false);
+  const [editing, setEditing] = useState<ItemPurchase | null>(null);
   const [qty, setQty] = useState("");
   const [cost, setCost] = useState("");
   const [error, setError] = useState("");
@@ -35,20 +39,55 @@ export default function ItemDetailScreen() {
     );
   }
 
+  const openAdd = () => {
+    setEditing(null);
+    setQty("");
+    setCost("");
+    setError("");
+    setBuyOpen(true);
+  };
+
+  const openEdit = (purchase: ItemPurchase) => {
+    setEditing(purchase);
+    setQty(String(purchase.quantity));
+    setCost(String(purchase.totalCost));
+    setError("");
+    setBuyOpen(true);
+  };
+
   const submitPurchase = async () => {
     setError("");
     try {
-      await addPurchase.mutateAsync({
-        quantity: Number(qty) || 0,
-        totalCost: Number(cost) || 0,
-      });
+      if (editing) {
+        await updatePurchase.mutateAsync({
+          purchaseId: editing.id,
+          quantity: Number(qty) || 0,
+          totalCost: Number(cost) || 0,
+        });
+      } else {
+        await addPurchase.mutateAsync({
+          quantity: Number(qty) || 0,
+          totalCost: Number(cost) || 0,
+        });
+      }
       setBuyOpen(false);
-      setQty("");
-      setCost("");
     } catch (e) {
       setError(apiError(e));
     }
   };
+
+  const removePurchase = async () => {
+    if (!editing) return;
+    setError("");
+    try {
+      await deletePurchase.mutateAsync(editing.id);
+      setBuyOpen(false);
+    } catch (e) {
+      setError(apiError(e));
+    }
+  };
+
+  const dialogBusy = addPurchase.isPending || updatePurchase.isPending || deletePurchase.isPending;
 
   return (
     <>
@@ -105,7 +144,7 @@ export default function ItemDetailScreen() {
         </Card>
 
         <View style={styles.actions}>
-          <Button mode="contained" icon="cart-plus" onPress={() => setBuyOpen(true)}>
+          <Button mode="contained" icon="cart-plus" onPress={openAdd}>
             আবার কিনেছি
           </Button>
           <Button
@@ -132,6 +171,8 @@ export default function ItemDetailScreen() {
                   title={`${bn(p.quantity)}টি — ${taka(p.totalCost)}`}
                   description={`${bnDate(p.purchasedAt)}${p.notes ? ` · ${p.notes}` : ""}`}
                   left={(props) => <List.Icon {...props} icon="cart" />}
+                  right={(props) => <List.Icon {...props} icon="pencil-outline" />}
+                  onPress={() => openEdit(p)}
                 />
               </View>
             ))}
@@ -142,7 +183,7 @@ export default function ItemDetailScreen() {
 
       <Portal>
         <Dialog visible={buyOpen} onDismiss={() => setBuyOpen(false)}>
-          <Dialog.Title>আবার কিনেছি</Dialog.Title>
+          <Dialog.Title>{editing ? "কেনার হিসাব সম্পাদনা" : "আবার কিনেছি"}</Dialog.Title>
           <Dialog.Content>
             <TextInput
               label="কতটি কিনলেন?"
@@ -160,13 +201,18 @@ export default function ItemDetailScreen() {
             {error && buyOpen ? <Text style={styles.error}>{error}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
+            {editing && (
+              <Button textColor="crimson" onPress={removePurchase} disabled={dialogBusy}>
+                মুছুন
+              </Button>
+            )}
             <Button onPress={() => setBuyOpen(false)}>বাতিল</Button>
             <Button
               onPress={submitPurchase}
-              loading={addPurchase.isPending}
-              disabled={(!qty && !cost) || addPurchase.isPending}
+              loading={dialogBusy}
+              disabled={(!qty && !cost) || dialogBusy}
             >
-              যোগ করুন
+              {editing ? "সংরক্ষণ" : "যোগ করুন"}
             </Button>
           </Dialog.Actions>
         </Dialog>

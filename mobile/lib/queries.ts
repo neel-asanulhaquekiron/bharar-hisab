@@ -30,15 +30,35 @@ export type ItemInput = {
 
 export type PurchaseInput = { quantity: number; totalCost: number; notes?: string | null };
 
+function invalidateItemData(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ["items"] });
+  qc.invalidateQueries({ queryKey: ["dashboard"] });
+}
+
 export function useAddPurchase(itemId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: PurchaseInput) =>
       (await api.post(`/items/${itemId}/purchases`, input)).data,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["items"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: () => invalidateItemData(qc),
+  });
+}
+
+export function useUpdatePurchase(itemId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ purchaseId, ...input }: PurchaseInput & { purchaseId: string }) =>
+      (await api.patch(`/items/${itemId}/purchases/${purchaseId}`, input)).data,
+    onSuccess: () => invalidateItemData(qc),
+  });
+}
+
+export function useDeletePurchase(itemId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (purchaseId: string) =>
+      (await api.delete(`/items/${itemId}/purchases/${purchaseId}`)).data,
+    onSuccess: () => invalidateItemData(qc),
   });
 }
 

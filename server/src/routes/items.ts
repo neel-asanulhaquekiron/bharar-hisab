@@ -143,6 +143,44 @@ itemsRouter.post("/:id/purchases", async (req, res) => {
   res.status(201).json({ purchase });
 });
 
+const purchasePatchSchema = z.object({
+  quantity: z.number().int().min(0).optional(),
+  totalCost: z.number().min(0).optional(),
+  notes: z.string().nullish(),
+});
+
+itemsRouter.patch("/:id/purchases/:purchaseId", async (req, res) => {
+  const body = purchasePatchSchema.parse(req.body);
+  const purchase = await prisma.itemPurchase.findFirst({
+    where: { id: req.params.purchaseId, itemId: req.params.id, item: { userId: req.userId } },
+  });
+  if (!purchase) throw new HttpError(404, "কেনার হিসাব পাওয়া যায়নি");
+  const quantityDelta = body.quantity !== undefined ? body.quantity - purchase.quantity : 0;
+  const [updated] = await prisma.$transaction([
+    prisma.itemPurchase.update({ where: { id: purchase.id }, data: body }),
+    prisma.item.update({
+      where: { id: purchase.itemId },
+      data: { totalQuantity: { increment: quantityDelta } },
+    }),
+  ]);
+  res.json({ purchase: updated });
+});
+
+itemsRouter.delete("/:id/purchases/:purchaseId", async (req, res) => {
+  const purchase = await prisma.itemPurchase.findFirst({
+    where: { id: req.params.purchaseId, itemId: req.params.id, item: { userId: req.userId } },
+  });
+  if (!purchase) throw new HttpError(404, "কেনার হিসাব পাওয়া যায়নি");
+  await prisma.$transaction([
+    prisma.itemPurchase.delete({ where: { id: purchase.id } }),
+    prisma.item.update({
+      where: { id: purchase.itemId },
+      data: { totalQuantity: { decrement: purchase.quantity } },
+    }),
+  ]);
+  res.json({ ok: true });
+});
+
 itemsRouter.patch("/:id", async (req, res) => {
   const body = itemSchema.omit({ initialCost: true }).partial().parse(req.body);
   const { count } = await prisma.item.updateMany({
