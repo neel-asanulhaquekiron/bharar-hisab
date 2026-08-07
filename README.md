@@ -1,6 +1,6 @@
 # ভাড়ার হিসাব (Bharar Hisab)
 
-> 🚧 **Status: Planning stage** — see [PLAN.md](./PLAN.md) for the full project plan.
+> ✅ **Status: Core app working** — API and all app screens built. Remaining: FCM notifications + deployment. See [PLAN.md](./PLAN.md) for the full plan.
 
 কোন মালামাল কাকে, কতটি ভাড়া দেওয়া হয়েছে — আর ভাড়ার টাকার হিসাব — সব এক অ্যাপে।
 
@@ -30,25 +30,24 @@ A personal rental-tracking mobile app in Bangla: track the items you rent out (w
 
 ```
 bharar-hisab/
-├── mobile/     # Expo React Native app (Bangla UI)   — coming in M1
-├── server/     # Node.js + Express + Prisma API      — coming in M1
+├── mobile/     # Expo React Native app (Bangla UI, SDK 54)
+├── server/     # Node.js + Express + Prisma API
 ├── PLAN.md     # Full project plan
 └── README.md
 ```
 
 ## Getting Started
 
-Setup instructions will land as the milestones in [PLAN.md](./PLAN.md) are built. Planned flow:
-
 ```bash
 # API
 cd server && npm install
-cp .env.example .env   # DATABASE_URL, JWT_SECRET, Firebase service account
+cp .env.example .env   # fill in DATABASE_URL + JWT secrets
 npx prisma migrate dev
-npm run dev
+npm run dev            # http://localhost:4000
 
-# App
+# App (test with Expo Go on your phone)
 cd mobile && npm install
+cp .env.example .env   # set EXPO_PUBLIC_API_URL to your computer's LAN IP
 npx expo start
 ```
 
