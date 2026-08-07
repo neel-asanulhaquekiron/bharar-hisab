@@ -38,7 +38,7 @@ export default function RenterFormScreen() {
     try {
       await save.mutateAsync({
         name: name.trim(),
-        phone: phone.trim() || null,
+        phone: phone.trim(),
         address: address.trim() || null,
         notes: notes.trim() || null,
       });
@@ -68,7 +68,7 @@ export default function RenterFormScreen() {
         </Button>
         <TextInput label="নাম" value={name} onChangeText={setName} style={styles.input} />
         <TextInput
-          label="ফোন (ঐচ্ছিক)"
+          label="ফোন নম্বর"
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
@@ -94,7 +94,7 @@ export default function RenterFormScreen() {
           mode="contained"
           onPress={submit}
           loading={save.isPending}
-          disabled={!name.trim() || save.isPending}
+          disabled={!name.trim() || !phone.trim() || save.isPending}
         >
           সংরক্ষণ করুন
         </Button>
