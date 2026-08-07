@@ -210,6 +210,17 @@ export default function RentalDetailScreen() {
               keyboardType="decimal-pad"
               style={styles.dialogInput}
             />
+            {fin.due > 0 && (
+              <Button
+                mode="outlined"
+                icon="cash-check"
+                compact
+                onPress={() => setAmount(String(fin.due))}
+                style={styles.dialogInput}
+              >
+                পুরো বাকি জমা করুন ({taka(fin.due)})
+              </Button>
+            )}
             <Text variant="labelMedium" style={styles.methodLabel}>
               মাধ্যম
             </Text>
