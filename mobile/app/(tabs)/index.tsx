@@ -57,15 +57,36 @@ export default function DashboardScreen() {
           color={data.overdueCount > 0 ? "#c62828" : undefined}
         />
       </View>
-      <View style={styles.statsRow}>
-        <StatCard label="মোট বিনিয়োগ" value={taka(data.totalInvestment)} />
-        <StatCard label="মোট আয়" value={taka(data.totalIncome)} color="#2e7d32" />
-        <StatCard
-          label={data.profit >= 0 ? "লাভ" : "ক্ষতি"}
-          value={taka(Math.abs(data.profit))}
-          color={data.profit >= 0 ? "#2e7d32" : "#c62828"}
-        />
-      </View>
+      <Card style={styles.investCard}>
+        <Card.Title title="বিনিয়োগের হিসাব" titleStyle={styles.cardTitle} />
+        <Card.Content style={styles.investRow}>
+          <View style={styles.investBox}>
+            <Text variant="labelMedium" style={styles.statLabel}>
+              মোট বিনিয়োগ
+            </Text>
+            <Text variant="titleMedium">{taka(data.totalInvestment)}</Text>
+          </View>
+          <View style={styles.investBox}>
+            <Text variant="labelMedium" style={styles.statLabel}>
+              মোট আয়
+            </Text>
+            <Text variant="titleMedium" style={styles.green}>
+              {taka(data.totalIncome)}
+            </Text>
+          </View>
+          <View style={styles.investBox}>
+            <Text variant="labelMedium" style={styles.statLabel}>
+              {data.profit >= 0 ? "লাভ" : "ক্ষতি"}
+            </Text>
+            <Text
+              variant="titleMedium"
+              style={data.profit >= 0 ? styles.green : styles.red}
+            >
+              {taka(Math.abs(data.profit))}
+            </Text>
+          </View>
+        </Card.Content>
+      </Card>
 
       {data.overdue.length > 0 && (
         <>
@@ -100,6 +121,11 @@ const styles = StyleSheet.create({
   statCard: { flex: 1 },
   statContent: { alignItems: "center" },
   statLabel: { opacity: 0.7, marginBottom: 4 },
+  investCard: { marginBottom: 10 },
+  investRow: { flexDirection: "row" },
+  investBox: { flex: 1, alignItems: "center" },
+  green: { color: "#2e7d32" },
+  red: { color: "#c62828" },
   sectionTitle: { marginTop: 12, marginBottom: 8, marginLeft: 4 },
   overdueCard: { marginBottom: 10 },
   cardTitle: { fontFamily: "NotoSansBengali_500Medium" },
