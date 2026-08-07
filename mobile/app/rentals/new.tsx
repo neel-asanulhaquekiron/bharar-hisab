@@ -290,16 +290,16 @@ export default function NewRentalScreen() {
               </Button>
             )}
             {picker === "renter" && addingRenter && (
-              <>
-                <Button onPress={() => setAddingRenter(false)}>পেছনে</Button>
-                <Button
-                  onPress={saveNewRenter}
-                  loading={saveRenter.isPending}
-                  disabled={!newName.trim() || saveRenter.isPending}
-                >
-                  সংরক্ষণ
-                </Button>
-              </>
+              <Button onPress={() => setAddingRenter(false)}>পেছনে</Button>
+            )}
+            {picker === "renter" && addingRenter && (
+              <Button
+                onPress={saveNewRenter}
+                loading={saveRenter.isPending}
+                disabled={!newName.trim() || saveRenter.isPending}
+              >
+                সংরক্ষণ
+              </Button>
             )}
             {(picker === "item" || (picker === "renter" && !addingRenter)) && (
               <Button onPress={closePicker}>বন্ধ করুন</Button>
