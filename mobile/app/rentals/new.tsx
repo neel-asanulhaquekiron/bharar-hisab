@@ -59,31 +59,31 @@ export default function NewRentalScreen() {
   const availableItems = (items ?? []).filter((i) => i.availableQuantity > 0);
   const item = items?.find((i) => i.id === itemId);
 
+  const findByPhone = (p: string) =>
+    (renters ?? []).find((r) => samePhone(normPhone(r.phone ?? ""), normPhone(p)));
+
   // পুরানো ভাড়াটিয়া কিনা সিস্টেম নিজেই বের করে — আগে ফোন নম্বর, পরে নাম মিলিয়ে
+  const phoneMatch = findByPhone(newPhone);
   const matched =
-    (renters ?? []).find((r) =>
-      samePhone(normPhone(r.phone ?? ""), normPhone(newPhone)),
-    ) ??
+    phoneMatch ??
     (newName.trim()
       ? (renters ?? []).find(
           (r) => r.name.trim().toLowerCase() === newName.trim().toLowerCase(),
         )
       : undefined);
 
-  // নাম অটো-ফিল হয়েছিল কিনা মনে রাখি — ব্যবহারকারীর নিজের লেখা নাম কখনো মুছি না
+  // নাম অটো-ফিল হয়েছিল কিনা মনে রাখি — ব্যবহারকারীর নিজের লেখা নাম মুছি না
   const autoFilledName = useRef("");
 
-  const findByPhone = (p: string) =>
-    (renters ?? []).find((r) => samePhone(normPhone(r.phone ?? ""), normPhone(p)));
-
-  // ফোন নম্বর বদলালে: পুরানো ভাড়াটিয়া মিললে নাম বসাই, মিল চলে গেলে অটো-ফিল নাম মুছি
+  // ফোন নম্বর বদলালে: পুরানো ভাড়াটিয়া মিললে তার নামই বসে (ফিল্ড তখন লকড),
+  // মিল চলে গেলে অটো-ফিল নাম মুছে যায়
   const applyPhone = (p: string) => {
     setNewPhone(p);
     const m = findByPhone(p);
-    if (m && (!newName.trim() || newName === autoFilledName.current)) {
+    if (m) {
       setNewName(m.name);
       autoFilledName.current = m.name;
-    } else if (!m && newName === autoFilledName.current) {
+    } else if (newName === autoFilledName.current) {
       setNewName("");
       autoFilledName.current = "";
     }
@@ -225,6 +225,7 @@ export default function NewRentalScreen() {
           label="ভাড়াটিয়ার নাম"
           value={newName}
           onChangeText={setNewName}
+          disabled={!!phoneMatch}
           style={styles.input}
         />
 
