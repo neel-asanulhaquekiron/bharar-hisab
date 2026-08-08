@@ -56,6 +56,11 @@ export default function NewRentalScreen() {
   const pickFromContacts = async () => {
     setError("");
     try {
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status !== "granted") {
+        setError("কন্টাক্ট দেখার অনুমতি দেওয়া হয়নি");
+        return;
+      }
       const contact = await Contacts.presentContactPickerAsync();
       if (contact) {
         if (contact.name) setNewName(contact.name);
