@@ -70,6 +70,15 @@ export default function NewRentalScreen() {
         )
       : undefined);
 
+  // ফোন নম্বর বদলালে পুরানো ভাড়াটিয়া মিললে নাম নিজে থেকেই বসে যায়
+  const applyPhone = (p: string) => {
+    setNewPhone(p);
+    const m = (renters ?? []).find((r) =>
+      samePhone(normPhone(r.phone ?? ""), normPhone(p)),
+    );
+    if (m) setNewName(m.name);
+  };
+
   const pickFromContacts = async () => {
     setError("");
     try {
@@ -82,7 +91,7 @@ export default function NewRentalScreen() {
       if (contact) {
         if (contact.name) setNewName(contact.name);
         const phone = contact.phoneNumbers?.[0]?.number;
-        if (phone) setNewPhone(phone.replace(/[\s-]/g, ""));
+        if (phone) applyPhone(phone.replace(/[\s-]/g, ""));
       }
     } catch (e) {
       setError(apiError(e));
@@ -177,7 +186,7 @@ export default function NewRentalScreen() {
         <TextInput
           label="ফোন নম্বর"
           value={newPhone}
-          onChangeText={setNewPhone}
+          onChangeText={applyPhone}
           keyboardType="phone-pad"
           right={
             <TextInput.Icon
