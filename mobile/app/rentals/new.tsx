@@ -1,7 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Contacts from "expo-contacts";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
   Button,
@@ -70,13 +70,23 @@ export default function NewRentalScreen() {
         )
       : undefined);
 
-  // ফোন নম্বর বদলালে পুরানো ভাড়াটিয়া মিললে নাম নিজে থেকেই বসে যায়
+  // নাম অটো-ফিল হয়েছিল কিনা মনে রাখি — ব্যবহারকারীর নিজের লেখা নাম কখনো মুছি না
+  const autoFilledName = useRef("");
+
+  const findByPhone = (p: string) =>
+    (renters ?? []).find((r) => samePhone(normPhone(r.phone ?? ""), normPhone(p)));
+
+  // ফোন নম্বর বদলালে: পুরানো ভাড়াটিয়া মিললে নাম বসাই, মিল চলে গেলে অটো-ফিল নাম মুছি
   const applyPhone = (p: string) => {
     setNewPhone(p);
-    const m = (renters ?? []).find((r) =>
-      samePhone(normPhone(r.phone ?? ""), normPhone(p)),
-    );
-    if (m) setNewName(m.name);
+    const m = findByPhone(p);
+    if (m && (!newName.trim() || newName === autoFilledName.current)) {
+      setNewName(m.name);
+      autoFilledName.current = m.name;
+    } else if (!m && newName === autoFilledName.current) {
+      setNewName("");
+      autoFilledName.current = "";
+    }
   };
 
   const pickFromContacts = async () => {
@@ -89,9 +99,16 @@ export default function NewRentalScreen() {
       }
       const contact = await Contacts.presentContactPickerAsync();
       if (contact) {
-        if (contact.name) setNewName(contact.name);
-        const phone = contact.phoneNumbers?.[0]?.number;
-        if (phone) applyPhone(phone.replace(/[\s-]/g, ""));
+        const phone = contact.phoneNumbers?.[0]?.number?.replace(/[\s-]/g, "") ?? "";
+        const m = phone ? findByPhone(phone) : undefined;
+        if (m) {
+          setNewName(m.name);
+          autoFilledName.current = m.name;
+        } else if (contact.name) {
+          setNewName(contact.name);
+          autoFilledName.current = "";
+        }
+        if (phone) setNewPhone(phone);
       }
     } catch (e) {
       setError(apiError(e));
