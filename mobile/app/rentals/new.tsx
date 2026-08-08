@@ -195,12 +195,6 @@ export default function NewRentalScreen() {
         </Menu>
 
         <TextInput
-          label="ভাড়াটিয়ার নাম"
-          value={newName}
-          onChangeText={setNewName}
-          style={styles.input}
-        />
-        <TextInput
           label="ফোন নম্বর"
           value={newPhone}
           onChangeText={applyPhone}
@@ -227,6 +221,12 @@ export default function NewRentalScreen() {
               : "নতুন ভাড়াটিয়া হিসেবে যোগ হবে"}
           </Text>
         ) : null}
+        <TextInput
+          label="ভাড়াটিয়ার নাম"
+          value={newName}
+          onChangeText={setNewName}
+          style={styles.input}
+        />
 
         <TextInput
           label="পরিমাণ"
