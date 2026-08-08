@@ -34,6 +34,18 @@ function samePhone(a: string, b: string): boolean {
   return a === b;
 }
 
+// সার্ভারের billingPeriods-এর হুবহু কপি — শুরু হওয়া প্রতিটি দিন/মাস গোনা হয়
+function billingPeriods(start: Date, end: Date, unit: "DAILY" | "MONTHLY"): number {
+  if (end <= start) return 1;
+  if (unit === "DAILY") {
+    return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
+  }
+  let months =
+    (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  if (end.getDate() > start.getDate()) months += 1;
+  return Math.max(1, months);
+}
+
 export default function NewRentalScreen() {
   const theme = useAppTheme();
   const { data: renters } = useRenters();
@@ -157,6 +169,15 @@ export default function NewRentalScreen() {
   };
 
   const busy = create.isPending || saveRenter.isPending;
+
+  // হিসাবের প্রিভিউ — সার্ভার যেভাবে গুনবে সেভাবেই
+  const previewQty = Number(quantity) || 0;
+  const previewRate = rate === "" ? (item ? Number(item.rate) : 0) : Number(rate) || 0;
+  const previewPeriods =
+    item && returnDate ? billingPeriods(startDate, returnDate, item.rateUnit) : 1;
+  const previewTotal = previewQty * previewRate * previewPeriods;
+  const previewAdvance = Number(advance) || 0;
+  const unitWord = item?.rateUnit === "MONTHLY" ? "মাস" : "দিন";
 
   return (
     <>
@@ -287,6 +308,49 @@ export default function NewRentalScreen() {
           />
         )}
 
+        {item && previewTotal > 0 && (
+          <View
+            style={[styles.summary, { backgroundColor: theme.colors.surfaceVariant }]}
+          >
+            <View style={styles.summaryRow}>
+              <Text variant="bodyMedium">
+                {`মোট ভাড়া (${bn(previewQty)}টি × ${taka(previewRate)}${
+                  returnDate ? ` × ${bn(previewPeriods)} ${unitWord}` : ""
+                })`}
+              </Text>
+              <Text variant="titleMedium">
+                {returnDate
+                  ? taka(previewTotal)
+                  : `${taka(previewTotal)} ${rateUnitLabel(item.rateUnit)}`}
+              </Text>
+            </View>
+            {previewAdvance > 0 && (
+              <>
+                <View style={styles.summaryRow}>
+                  <Text variant="bodyMedium">অগ্রিম জমা</Text>
+                  <Text variant="titleMedium" style={{ color: theme.colors.income }}>
+                    {taka(previewAdvance)}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text variant="bodyMedium">বাকি থাকবে</Text>
+                  <Text
+                    variant="titleMedium"
+                    style={{
+                      color:
+                        previewTotal - previewAdvance > 0
+                          ? theme.colors.loss
+                          : theme.colors.income,
+                    }}
+                  >
+                    {taka(previewTotal - previewAdvance)}
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+        )}
+
         <HelperText type="error" visible={!!error}>
           {error}
         </HelperText>
@@ -325,4 +389,11 @@ const styles = StyleSheet.create({
   renterHint: { marginBottom: 12, marginLeft: 4 },
   dateRow: { gap: 8, marginBottom: 12 },
   advanceTitle: { marginBottom: 8, marginTop: 4 },
+  summary: { borderRadius: 12, padding: 14, gap: 6, marginBottom: 4 },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
 });
