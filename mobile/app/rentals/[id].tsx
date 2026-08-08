@@ -34,6 +34,11 @@ export default function RentalDetailScreen() {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("ক্যাশ");
   const [error, setError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    amount: string;
+    paidAt: string;
+  } | null>(null);
 
   if (isLoading || !rental) {
     return (
@@ -137,9 +142,11 @@ export default function RentalDetailScreen() {
               ফেরত নিন
             </Button>
           )}
-          <Button mode="contained" icon="cash-plus" onPress={() => setPayOpen(true)}>
-            টাকা জমা
-          </Button>
+          {fin.due > 0 && (
+            <Button mode="contained" icon="cash-plus" onPress={() => setPayOpen(true)}>
+              টাকা জমা
+            </Button>
+          )}
         </View>
 
         <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -159,7 +166,7 @@ export default function RentalDetailScreen() {
                   <IconButton
                     {...props}
                     icon="delete-outline"
-                    onPress={() => deletePayment.mutate(p.id)}
+                    onPress={() => setDeleteTarget(p)}
                   />
                 )}
               />
@@ -247,6 +254,34 @@ export default function RentalDetailScreen() {
               disabled={!amount || Number(amount) <= 0}
             >
               জমা করুন
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={!!deleteTarget} onDismiss={() => setDeleteTarget(null)}>
+          <Dialog.Title>পেমেন্ট মুছবেন?</Dialog.Title>
+          <Dialog.Content>
+            {deleteTarget && (
+              <Text>
+                {taka(deleteTarget.amount)} ({bnDate(deleteTarget.paidAt)}) পেমেন্টটি মুছে ফেলা
+                হবে।
+              </Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteTarget(null)}>বাতিল</Button>
+            <Button
+              textColor={theme.colors.error}
+              loading={deletePayment.isPending}
+              disabled={deletePayment.isPending}
+              onPress={() => {
+                if (!deleteTarget) return;
+                deletePayment.mutate(deleteTarget.id, {
+                  onSettled: () => setDeleteTarget(null),
+                });
+              }}
+            >
+              মুছে ফেলুন
             </Button>
           </Dialog.Actions>
         </Dialog>
