@@ -42,6 +42,7 @@ export default function ItemDetailScreen() {
   const [cost, setCost] = useState("");
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmPurchaseDelete, setConfirmPurchaseDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
   if (isLoading || !item) {
@@ -94,8 +95,10 @@ export default function ItemDetailScreen() {
     setError("");
     try {
       await deletePurchase.mutateAsync(editing.id);
+      setConfirmPurchaseDelete(false);
       setBuyOpen(false);
     } catch (e) {
+      setConfirmPurchaseDelete(false);
       setError(apiError(e));
     }
   };
@@ -233,7 +236,11 @@ export default function ItemDetailScreen() {
           </Dialog.Content>
           <Dialog.Actions>
             {editing && (
-              <Button textColor={theme.colors.error} onPress={removePurchase} disabled={dialogBusy}>
+              <Button
+                textColor={theme.colors.error}
+                onPress={() => setConfirmPurchaseDelete(true)}
+                disabled={dialogBusy}
+              >
                 মুছুন
               </Button>
             )}
@@ -244,6 +251,30 @@ export default function ItemDetailScreen() {
               disabled={(!qty && !cost) || dialogBusy}
             >
               {editing ? "সংরক্ষণ" : "যোগ করুন"}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog
+          visible={confirmPurchaseDelete}
+          onDismiss={() => setConfirmPurchaseDelete(false)}
+        >
+          <Dialog.Title>কেনার হিসাব মুছবেন?</Dialog.Title>
+          <Dialog.Content>
+            {editing && (
+              <Text>
+                {bn(editing.quantity)}টি — {taka(editing.totalCost)} কেনার হিসাবটি মুছে ফেলা হবে।
+              </Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmPurchaseDelete(false)}>বাতিল</Button>
+            <Button
+              textColor={theme.colors.error}
+              onPress={removePurchase}
+              loading={deletePurchase.isPending}
+              disabled={deletePurchase.isPending}
+            >
+              মুছে ফেলুন
             </Button>
           </Dialog.Actions>
         </Dialog>
