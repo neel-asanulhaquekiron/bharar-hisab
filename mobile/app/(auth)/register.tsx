@@ -10,6 +10,7 @@ export default function RegisterScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -50,7 +51,13 @@ export default function RegisterScreen() {
           label="পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)"
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
+          secureTextEntry={!showPassword}
+          right={
+            <TextInput.Icon
+              icon={showPassword ? "eye-off" : "eye"}
+              onPress={() => setShowPassword((v) => !v)}
+            />
+          }
           style={styles.input}
         />
         <HelperText type="error" visible={!!error}>

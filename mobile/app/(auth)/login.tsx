@@ -9,6 +9,7 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -48,7 +49,13 @@ export default function LoginScreen() {
           label="পাসওয়ার্ড"
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
+          secureTextEntry={!showPassword}
+          right={
+            <TextInput.Icon
+              icon={showPassword ? "eye-off" : "eye"}
+              onPress={() => setShowPassword((v) => !v)}
+            />
+          }
           style={styles.input}
         />
         <HelperText type="error" visible={!!error}>
