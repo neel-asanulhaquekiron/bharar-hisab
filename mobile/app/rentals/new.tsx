@@ -5,10 +5,11 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import {
   Button,
-  Divider,
   HelperText,
   Menu,
+  Portal,
   SegmentedButtons,
+  Snackbar,
   Text,
   TextInput,
   TouchableRipple,
@@ -23,7 +24,15 @@ function toDateOnly(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-const NEW_RENTER = "__new__";
+function normPhone(p: string): string {
+  return p.replace(/\D/g, "");
+}
+
+function samePhone(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a.length >= 10 && b.length >= 10) return a.slice(-10) === b.slice(-10);
+  return a === b;
+}
 
 export default function NewRentalScreen() {
   const theme = useAppTheme();
@@ -33,7 +42,6 @@ export default function NewRentalScreen() {
   const saveRenter = useSaveRenter();
 
   const [itemId, setItemId] = useState("");
-  const [renterChoice, setRenterChoice] = useState<string>(NEW_RENTER);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -44,14 +52,23 @@ export default function NewRentalScreen() {
   const [advance, setAdvance] = useState("");
   const [advanceMethod, setAdvanceMethod] = useState("ক্যাশ");
   const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
   const [itemMenu, setItemMenu] = useState(false);
-  const [renterMenu, setRenterMenu] = useState(false);
   const [datePicker, setDatePicker] = useState<"start" | "return" | null>(null);
 
   const availableItems = (items ?? []).filter((i) => i.availableQuantity > 0);
   const item = items?.find((i) => i.id === itemId);
-  const isNewRenter = renterChoice === NEW_RENTER;
-  const renter = renters?.find((r) => r.id === renterChoice);
+
+  // পুরানো ভাড়াটিয়া কিনা সিস্টেম নিজেই বের করে — আগে ফোন নম্বর, পরে নাম মিলিয়ে
+  const matched =
+    (renters ?? []).find((r) =>
+      samePhone(normPhone(r.phone ?? ""), normPhone(newPhone)),
+    ) ??
+    (newName.trim()
+      ? (renters ?? []).find(
+          (r) => r.name.trim().toLowerCase() === newName.trim().toLowerCase(),
+        )
+      : undefined);
 
   const pickFromContacts = async () => {
     setError("");
@@ -74,9 +91,21 @@ export default function NewRentalScreen() {
 
   const submit = async () => {
     setError("");
+    const qty = Number(quantity);
+    let missing = "";
+    if (!itemId) missing = "মালামাল নির্বাচন করুন";
+    else if (!matched && !newName.trim()) missing = "ভাড়াটিয়ার নাম লিখুন";
+    else if (!matched && !newPhone.trim()) missing = "ফোন নম্বর লিখুন";
+    else if (!quantity || qty < 1) missing = "কতটি ভাড়া দিচ্ছেন তা লিখুন";
+    else if (item && qty > item.availableQuantity)
+      missing = `"${item.name}" আছে মাত্র ${bn(item.availableQuantity)}টি`;
+    if (missing) {
+      setToast(missing);
+      return;
+    }
     try {
-      let renterId = renterChoice;
-      if (isNewRenter) {
+      let renterId = matched?.id ?? "";
+      if (!renterId) {
         const { renter: created } = await saveRenter.mutateAsync({
           name: newName.trim(),
           phone: newPhone.trim(),
@@ -101,8 +130,6 @@ export default function NewRentalScreen() {
     }
   };
 
-  const renterValid = isNewRenter ? newName.trim() && newPhone.trim() : !!renter;
-  const valid = itemId && renterValid && Number(quantity) >= 1;
   const busy = create.isPending || saveRenter.isPending;
 
   return (
@@ -141,66 +168,39 @@ export default function NewRentalScreen() {
           ))}
         </Menu>
 
-        <Menu
-          visible={renterMenu}
-          onDismiss={() => setRenterMenu(false)}
-          anchorPosition="bottom"
-          anchor={
-            <TouchableRipple onPress={() => setRenterMenu(true)}>
-              <View pointerEvents="none">
-                <TextInput
-                  label="ভাড়াটিয়া"
-                  value={isNewRenter ? "নতুন ভাড়াটিয়া" : (renter?.name ?? "")}
-                  editable={false}
-                  right={<TextInput.Icon icon="menu-down" />}
-                  style={styles.input}
-                />
-              </View>
-            </TouchableRipple>
+        <TextInput
+          label="ভাড়াটিয়ার নাম"
+          value={newName}
+          onChangeText={setNewName}
+          style={styles.input}
+        />
+        <TextInput
+          label="ফোন নম্বর"
+          value={newPhone}
+          onChangeText={setNewPhone}
+          keyboardType="phone-pad"
+          right={
+            <TextInput.Icon
+              icon="card-account-phone"
+              forceTextInputFocus={false}
+              onPress={pickFromContacts}
+            />
           }
-        >
-          <Menu.Item
-            leadingIcon="account-plus"
-            title="নতুন ভাড়াটিয়া"
-            onPress={() => {
-              setRenterChoice(NEW_RENTER);
-              setRenterMenu(false);
-            }}
-          />
-          {(renters ?? []).length > 0 && <Divider />}
-          {(renters ?? []).map((r) => (
-            <Menu.Item
-              key={r.id}
-              leadingIcon="account"
-              title={r.phone ? `${r.name} (${bn(r.phone)})` : r.name}
-              onPress={() => {
-                setRenterChoice(r.id);
-                setRenterMenu(false);
-              }}
-            />
-          ))}
-        </Menu>
-
-        {isNewRenter && (
-          <View style={[styles.newRenterBox, { borderLeftColor: theme.colors.primary }]}>
-            <TextInput
-              label="ভাড়াটিয়ার নাম"
-              value={newName}
-              onChangeText={setNewName}
-              style={styles.input}
-            />
-            <TextInput
-              label="ফোন নম্বর"
-              value={newPhone}
-              onChangeText={setNewPhone}
-              keyboardType="phone-pad"
-              style={styles.input}
-            />
-            <Button mode="text" icon="card-account-phone" onPress={pickFromContacts} compact>
-              কন্টাক্ট থেকে আনুন
-            </Button>
-          </View>
-        )}
+          style={(newName.trim() || newPhone.trim()) ? styles.inputTight : styles.input}
+        />
+        {(newName.trim() || newPhone.trim()) ? (
+          <Text
+            variant="bodySmall"
+            style={[
+              styles.renterHint,
+              { color: matched ? theme.colors.primary : theme.colors.onSurfaceVariant },
+            ]}
+          >
+            {matched
+              ? `পুরানো ভাড়াটিয়া: ${matched.name}${matched.phone ? ` (${bn(matched.phone)})` : ""}`
+              : "নতুন ভাড়াটিয়া হিসেবে যোগ হবে"}
+          </Text>
+        ) : null}
 
         <TextInput
           label="পরিমাণ"
@@ -263,10 +263,16 @@ export default function NewRentalScreen() {
         <HelperText type="error" visible={!!error}>
           {error}
         </HelperText>
-        <Button mode="contained" onPress={submit} loading={busy} disabled={!valid || busy}>
+        <Button mode="contained" onPress={submit} loading={busy} disabled={busy}>
           ভাড়া দিন
         </Button>
       </FormScreen>
+
+      <Portal>
+        <Snackbar visible={!!toast} onDismiss={() => setToast("")} duration={2500}>
+          {toast}
+        </Snackbar>
+      </Portal>
 
       {datePicker && (
         <DateTimePicker
@@ -288,7 +294,8 @@ export default function NewRentalScreen() {
 const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 48 },
   input: { marginBottom: 12 },
-  newRenterBox: { paddingLeft: 8, borderLeftWidth: 2, marginBottom: 8 },
+  inputTight: { marginBottom: 2 },
+  renterHint: { marginBottom: 12, marginLeft: 4 },
   dateRow: { gap: 8, marginBottom: 12 },
   advanceTitle: { marginBottom: 8, marginTop: 4 },
 });

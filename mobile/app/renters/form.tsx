@@ -58,20 +58,19 @@ export default function RenterFormScreen() {
     <>
       <Stack.Screen options={{ title: existing ? "ভাড়াটিয়া সম্পাদনা" : "নতুন ভাড়াটিয়া" }} />
       <FormScreen contentStyle={styles.container}>
-        <Button
-          mode="outlined"
-          icon="card-account-phone"
-          onPress={pickFromContacts}
-          style={styles.input}
-        >
-          কন্টাক্ট থেকে আনুন
-        </Button>
         <TextInput label="নাম" value={name} onChangeText={setName} style={styles.input} />
         <TextInput
           label="ফোন নম্বর"
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
+          right={
+            <TextInput.Icon
+              icon="card-account-phone"
+              forceTextInputFocus={false}
+              onPress={pickFromContacts}
+            />
+          }
           style={styles.input}
         />
         <TextInput
