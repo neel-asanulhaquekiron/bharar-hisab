@@ -17,11 +17,10 @@ import {
   TouchableRipple,
 } from "react-native-paper";
 import Animated, {
-  SlideInLeft,
-  SlideInRight,
+  FadeIn,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { FormScreen } from "@/components/form-screen";
 import { apiError } from "@/lib/api";
@@ -71,7 +70,6 @@ export default function NewRentalScreen() {
   const saveRenter = useSaveRenter();
 
   const [step, setStep] = useState(0);
-  const [dir, setDir] = useState(1);
   const [itemId, setItemId] = useState("");
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
@@ -143,10 +141,10 @@ export default function NewRentalScreen() {
     }
   };
 
-  // ওপরের প্রগ্রেস বার — ধাপ বদলালে স্প্রিং দিয়ে এগোয়
+  // ওপরের প্রগ্রেস বার — ধাপ বদলালে মসৃণভাবে এগোয়
   const progress = useSharedValue(1 / TOTAL_STEPS);
   useEffect(() => {
-    progress.value = withSpring((step + 1) / TOTAL_STEPS, { damping: 16 });
+    progress.value = withTiming((step + 1) / TOTAL_STEPS, { duration: 250 });
   }, [step, progress]);
   const progressStyle = useAnimatedStyle(() => ({
     width: `${progress.value * 100}%`,
@@ -154,7 +152,6 @@ export default function NewRentalScreen() {
 
   const goTo = (s: number) => {
     Keyboard.dismiss();
-    setDir(s > step ? 1 : -1);
     setStep(s);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
@@ -280,10 +277,7 @@ export default function NewRentalScreen() {
           </View>
         )}
 
-        <Animated.View
-          key={step}
-          entering={(dir === 1 ? SlideInRight : SlideInLeft).springify().damping(18)}
-        >
+        <Animated.View key={step} entering={FadeIn.duration(180)}>
           {step === 0 && (
             <View style={styles.cardList}>
               {availableItems.length === 0 && (
@@ -349,21 +343,23 @@ export default function NewRentalScreen() {
                     onPress={pickFromContacts}
                   />
                 }
-                style={(newName.trim() || newPhone.trim()) ? styles.inputTight : styles.input}
+                style={styles.inputTight}
               />
-              {(newName.trim() || newPhone.trim()) ? (
-                <Text
-                  variant="bodySmall"
-                  style={[
-                    styles.renterHint,
-                    { color: matched ? theme.colors.primary : theme.colors.onSurfaceVariant },
-                  ]}
-                >
-                  {matched
+              {/* হিন্টের জায়গা সবসময় ধরা থাকে — লেখার সময় নিচের ফিল্ড নড়ে না */}
+              <Text
+                variant="bodySmall"
+                numberOfLines={1}
+                style={[
+                  styles.renterHint,
+                  { color: matched ? theme.colors.primary : theme.colors.onSurfaceVariant },
+                ]}
+              >
+                {newName.trim() || newPhone.trim()
+                  ? matched
                     ? `পুরানো ভাড়াটিয়া: ${matched.name}${matched.phone ? ` (${bn(matched.phone)})` : ""}`
-                    : "নতুন ভাড়াটিয়া হিসেবে যোগ হবে"}
-                </Text>
-              ) : null}
+                    : "নতুন ভাড়াটিয়া হিসেবে যোগ হবে"
+                  : " "}
+              </Text>
               <TextInput
                 label="ভাড়াটিয়ার নাম"
                 value={newName}
@@ -426,18 +422,16 @@ export default function NewRentalScreen() {
                 keyboardType="decimal-pad"
                 style={styles.input}
               />
-              {Number(advance) > 0 && (
-                <SegmentedButtons
-                  value={advanceMethod}
-                  onValueChange={setAdvanceMethod}
-                  buttons={[
-                    { value: "ক্যাশ", label: "ক্যাশ" },
-                    { value: "নগদ", label: "নগদ" },
-                    { value: "বিকাশ", label: "বিকাশ" },
-                  ]}
-                  style={styles.input}
-                />
-              )}
+              <SegmentedButtons
+                value={advanceMethod}
+                onValueChange={setAdvanceMethod}
+                buttons={[
+                  { value: "ক্যাশ", label: "ক্যাশ" },
+                  { value: "নগদ", label: "নগদ" },
+                  { value: "বিকাশ", label: "বিকাশ" },
+                ]}
+                style={styles.input}
+              />
 
               {item && previewTotal > 0 ? (
                 <View
@@ -455,34 +449,30 @@ export default function NewRentalScreen() {
                         : `${taka(previewTotal)} ${rateUnitLabel(item.rateUnit)}`}
                     </Text>
                   </View>
-                  {previewAdvance > 0 && (
-                    <>
-                      <View style={styles.summaryRow}>
-                        <Text variant="bodyMedium" style={styles.summaryLabel}>
-                          অগ্রিম জমা
-                        </Text>
-                        <Text variant="titleMedium" style={{ color: theme.colors.income }}>
-                          {taka(previewAdvance)}
-                        </Text>
-                      </View>
-                      <View style={styles.summaryRow}>
-                        <Text variant="bodyMedium" style={styles.summaryLabel}>
-                          বাকি থাকবে
-                        </Text>
-                        <Text
-                          variant="titleMedium"
-                          style={{
-                            color:
-                              previewTotal - previewAdvance > 0
-                                ? theme.colors.loss
-                                : theme.colors.income,
-                          }}
-                        >
-                          {taka(previewTotal - previewAdvance)}
-                        </Text>
-                      </View>
-                    </>
-                  )}
+                  <View style={styles.summaryRow}>
+                    <Text variant="bodyMedium" style={styles.summaryLabel}>
+                      অগ্রিম জমা
+                    </Text>
+                    <Text variant="titleMedium" style={{ color: theme.colors.income }}>
+                      {taka(previewAdvance)}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text variant="bodyMedium" style={styles.summaryLabel}>
+                      বাকি থাকবে
+                    </Text>
+                    <Text
+                      variant="titleMedium"
+                      style={{
+                        color:
+                          previewTotal - previewAdvance > 0
+                            ? theme.colors.loss
+                            : theme.colors.income,
+                      }}
+                    >
+                      {taka(previewTotal - previewAdvance)}
+                    </Text>
+                  </View>
                 </View>
               ) : (
                 <Text
@@ -561,7 +551,7 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: "center" },
   input: { marginBottom: 12 },
   inputTight: { marginBottom: 2 },
-  renterHint: { marginBottom: 12, marginLeft: 4 },
+  renterHint: { marginBottom: 12, marginLeft: 4, minHeight: 18 },
   dateRow: { gap: 8, marginBottom: 12 },
   summary: { borderRadius: 12, padding: 14, gap: 6, marginBottom: 4 },
   // বাংলা টেক্সটের intrinsic মাপ Android-এ ছোট আসে — নির্দিষ্ট width না দিলে শেষ শব্দ কাটা পড়ে
