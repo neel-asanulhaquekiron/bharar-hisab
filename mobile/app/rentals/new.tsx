@@ -79,8 +79,11 @@ export default function NewRentalScreen() {
   const [newPhone, setNewPhone] = useState("");
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [rates, setRates] = useState<Record<string, string>>({});
-  // ভাড়ার হিসাব (দৈনিক/মাসিক/এককালীন) — না বদলালে মালামালের নিজেরটা
+  // ভাড়ার হিসাব (দৈনিক/মাসিক/এককালীন): সাধারণত এক ধরনই সবার জন্য (sharedUnit),
+  // দরকার হলে "প্রতিটির জন্য আলাদা" মোডে মালামাল-প্রতি আলাদা ধরন
   const [units, setUnits] = useState<Record<string, RateUnit>>({});
+  const [sharedUnit, setSharedUnit] = useState<RateUnit | null>(null);
+  const [perItemMode, setPerItemMode] = useState(false);
   const [startDate, setStartDate] = useState(new Date());
   const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
@@ -201,7 +204,8 @@ export default function NewRentalScreen() {
     goTo(step + 1);
   };
 
-  const unitOf = (it: Item): RateUnit => units[it.id] ?? it.rateUnit;
+  const unitOf = (it: Item): RateUnit =>
+    perItemMode ? (units[it.id] ?? it.rateUnit) : (sharedUnit ?? it.rateUnit);
 
   // হিসাবের প্রিভিউ — সার্ভার যেভাবে গুনবে সেভাবেই, প্রতিটি মালামাল আলাদা ভাড়া হয়
   const previews = selectedItems.map((it) => {
@@ -430,6 +434,59 @@ export default function NewRentalScreen() {
 
           {step === 2 && (
             <View>
+              {/* ভাড়ার ধরন: এক কন্ট্রোলেই সবগুলোর জন্য — দরকার হলে মালামাল-প্রতি আলাদা */}
+              <View style={styles.masterUnitHeader}>
+                <Text
+                  variant="labelMedium"
+                  style={[styles.masterUnitLabel, { color: theme.colors.onSurfaceVariant }]}
+                >
+                  {perItemMode ? "ভাড়ার ধরন — প্রতিটির আলাদা" : "ভাড়ার ধরন"}
+                </Text>
+                {selectedItems.length > 1 && (
+                  <Button
+                    compact
+                    mode="text"
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      if (perItemMode) {
+                        setSharedUnit(unitOf(selectedItems[0]));
+                        setPerItemMode(false);
+                      } else {
+                        setUnits((prev) => ({
+                          ...prev,
+                          ...Object.fromEntries(
+                            selectedItems.map((it) => [it.id, unitOf(it)]),
+                          ),
+                        }));
+                        setPerItemMode(true);
+                      }
+                    }}
+                  >
+                    {perItemMode ? "সবগুলোর এক ধরন" : "প্রতিটির জন্য আলাদা"}
+                  </Button>
+                )}
+              </View>
+              {!perItemMode && (
+                <SegmentedButtons
+                  value={
+                    sharedUnit ??
+                    (selectedItems.length > 0 &&
+                    selectedItems.every((it) => it.rateUnit === selectedItems[0].rateUnit)
+                      ? selectedItems[0].rateUnit
+                      : "")
+                  }
+                  onValueChange={(v) => {
+                    Haptics.selectionAsync();
+                    setSharedUnit(v as RateUnit);
+                  }}
+                  buttons={[
+                    { value: "DAILY", label: "দৈনিক" },
+                    { value: "MONTHLY", label: "মাসিক" },
+                    { value: "FLAT", label: "এককালীন" },
+                  ]}
+                  style={styles.unitRow}
+                />
+              )}
               {selectedItems.map((it) => (
                 <View key={it.id}>
                   {selectedItems.length > 1 && (
@@ -437,19 +494,22 @@ export default function NewRentalScreen() {
                       {`${it.name} (আছে ${bn(it.availableQuantity)}টি)`}
                     </Text>
                   )}
-                  {/* ভাড়াটা কোন হিসাবে — এককালীন মানে যতদিনই রাখুক, এক দাম */}
-                  <SegmentedButtons
-                    value={unitOf(it)}
-                    onValueChange={(v) =>
-                      setUnits((prev) => ({ ...prev, [it.id]: v as RateUnit }))
-                    }
-                    buttons={[
-                      { value: "DAILY", label: "দৈনিক" },
-                      { value: "MONTHLY", label: "মাসিক" },
-                      { value: "FLAT", label: "এককালীন" },
-                    ]}
-                    style={styles.unitRow}
-                  />
+                  {/* মালামাল-প্রতি আলাদা ধরন — শুধু "প্রতিটির জন্য আলাদা" মোডে */}
+                  {perItemMode && (
+                    <SegmentedButtons
+                      value={unitOf(it)}
+                      onValueChange={(v) => {
+                        Haptics.selectionAsync();
+                        setUnits((prev) => ({ ...prev, [it.id]: v as RateUnit }));
+                      }}
+                      buttons={[
+                        { value: "DAILY", label: "দৈনিক" },
+                        { value: "MONTHLY", label: "মাসিক" },
+                        { value: "FLAT", label: "এককালীন" },
+                      ]}
+                      style={styles.unitRow}
+                    />
+                  )}
                   <View style={styles.qtyRow}>
                     <TextInput
                       label={
@@ -656,6 +716,15 @@ const styles = StyleSheet.create({
   inputTight: { marginBottom: 2 },
   renterHint: { marginBottom: 12, marginLeft: 4, minHeight: 18 },
   itemHeader: { marginBottom: 8 },
+  masterUnitHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+    minHeight: 40,
+  },
+  // flex:1 — বাংলা টেক্সটের intrinsic মাপে শেষ শব্দ কাটা পড়ে
+  masterUnitLabel: { flex: 1 },
   unitRow: { marginBottom: 10 },
   qtyRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
   qtyInput: { flex: 1 },
