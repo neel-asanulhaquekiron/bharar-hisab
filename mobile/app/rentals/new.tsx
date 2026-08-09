@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, StyleSheet, View } from "react-native";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import {
   Button,
   Chip,
@@ -510,9 +511,12 @@ export default function NewRentalScreen() {
       </FormScreen>
 
       <Portal>
-        <Snackbar visible={!!toast} onDismiss={() => setToast("")} duration={2500}>
-          {toast}
-        </Snackbar>
+        {/* কীবোর্ড খোলা থাকলেও টোস্ট তার ওপরে ভেসে থাকে */}
+        <KeyboardStickyView style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          <Snackbar visible={!!toast} onDismiss={() => setToast("")} duration={2500}>
+            {toast}
+          </Snackbar>
+        </KeyboardStickyView>
       </Portal>
 
       {datePicker && (
