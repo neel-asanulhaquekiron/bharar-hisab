@@ -28,6 +28,7 @@ import { apiError } from "@/lib/api";
 import { bn, bnDate, rateUnitLabel, taka } from "@/lib/format";
 import { useCreateRental, useItems, useRenters, useSaveRenter } from "@/lib/queries";
 import { useAppTheme } from "@/lib/theme";
+import type { Item, RateUnit } from "@/lib/types";
 
 function toDateOnly(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -44,7 +45,9 @@ function samePhone(a: string, b: string): boolean {
 }
 
 // সার্ভারের billingPeriods-এর হুবহু কপি — শুরু হওয়া প্রতিটি দিন/মাস গোনা হয়
-function billingPeriods(start: Date, end: Date, unit: "DAILY" | "MONTHLY"): number {
+// FLAT হলে যতদিনই থাকুক, এক দাম
+function billingPeriods(start: Date, end: Date, unit: RateUnit): number {
+  if (unit === "FLAT") return 1;
   if (end <= start) return 1;
   if (unit === "DAILY") {
     return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
@@ -71,11 +74,13 @@ export default function NewRentalScreen() {
   const saveRenter = useSaveRenter();
 
   const [step, setStep] = useState(0);
-  const [itemId, setItemId] = useState("");
+  const [itemIds, setItemIds] = useState<string[]>([]);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [rate, setRate] = useState("");
+  const [quantities, setQuantities] = useState<Record<string, string>>({});
+  const [rates, setRates] = useState<Record<string, string>>({});
+  // ভাড়ার হিসাব (দৈনিক/মাসিক/এককালীন) — না বদলালে মালামালের নিজেরটা
+  const [units, setUnits] = useState<Record<string, RateUnit>>({});
   const [startDate, setStartDate] = useState(new Date());
   const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
@@ -86,7 +91,9 @@ export default function NewRentalScreen() {
   const [datePicker, setDatePicker] = useState<"start" | "return" | null>(null);
 
   const availableItems = (items ?? []).filter((i) => i.availableQuantity > 0);
-  const item = items?.find((i) => i.id === itemId);
+  const selectedItems = itemIds
+    .map((id) => items?.find((i) => i.id === id))
+    .filter((i): i is Item => !!i);
 
   const findByPhone = (p: string) =>
     (renters ?? []).find((r) => samePhone(normPhone(r.phone ?? ""), normPhone(p)));
@@ -157,18 +164,30 @@ export default function NewRentalScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const toggleItem = (id: string) => {
+    Haptics.selectionAsync();
+    setItemIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
   // কোন ধাপে কী বাকি — সাবমিট বোতাম কখনো নিঃশব্দে disabled থাকে না
   const stepMissing = (s: number): string => {
-    const qty = Number(quantity);
-    if (s === 0 && !itemId) return "মালামাল নির্বাচন করুন";
+    if (s === 0 && selectedItems.length === 0) return "মালামাল নির্বাচন করুন";
     if (s === 1) {
       if (!matched && !newPhone.trim()) return "ফোন নম্বর লিখুন";
       if (!matched && !newName.trim()) return "ভাড়াটিয়ার নাম লিখুন";
     }
     if (s === 2) {
-      if (!quantity || qty < 1) return "কতটি ভাড়া দিচ্ছেন তা লিখুন";
-      if (item && qty > item.availableQuantity)
-        return `"${item.name}" আছে মাত্র ${bn(item.availableQuantity)}টি`;
+      for (const it of selectedItems) {
+        const qty = Number(quantities[it.id]);
+        if (!quantities[it.id] || qty < 1)
+          return selectedItems.length > 1
+            ? `"${it.name}" কতটি ভাড়া দিচ্ছেন তা লিখুন`
+            : "কতটি ভাড়া দিচ্ছেন তা লিখুন";
+        if (qty > it.availableQuantity)
+          return `"${it.name}" আছে মাত্র ${bn(it.availableQuantity)}টি`;
+      }
     }
     return "";
   };
@@ -182,11 +201,39 @@ export default function NewRentalScreen() {
     goTo(step + 1);
   };
 
-  const selectItem = (id: string) => {
-    setItemId(id);
-    Haptics.selectionAsync();
-    // বাছাইটা চোখে পড়ার সময় দিয়ে নিজে থেকেই পরের ধাপে
-    setTimeout(() => goTo(1), 250);
+  const unitOf = (it: Item): RateUnit => units[it.id] ?? it.rateUnit;
+
+  // হিসাবের প্রিভিউ — সার্ভার যেভাবে গুনবে সেভাবেই, প্রতিটি মালামাল আলাদা ভাড়া হয়
+  const previews = selectedItems.map((it) => {
+    const qty = Number(quantities[it.id]) || 0;
+    const rate =
+      rates[it.id] === undefined || rates[it.id] === ""
+        ? Number(it.rate)
+        : Number(rates[it.id]) || 0;
+    const unit = unitOf(it);
+    const periods = returnDate ? billingPeriods(startDate, returnDate, unit) : 1;
+    return { item: it, unit, qty, rate, periods, total: qty * rate * periods };
+  });
+  const grandTotal = previews.reduce((sum, p) => sum + p.total, 0);
+  const previewAdvance = Number(advance) || 0;
+  // ফেরতের তারিখ না থাকলে টোটালটা "প্রতি দিন/মাস" হিসেবে — সব মালামালের একক এক হলে তবেই লেবেল দেখাই
+  // এককালীন হলে দামটা এমনিতেই পুরোটা, কোনো লেবেল লাগে না
+  const sameUnit =
+    previews.length > 0 && previews.every((p) => p.unit === previews[0].unit);
+  const grandUnitSuffix =
+    !returnDate && sameUnit && previews[0]?.unit !== "FLAT"
+      ? ` ${rateUnitLabel(previews[0].unit)}`
+      : "";
+
+  // অগ্রিম ভাগ হয় প্রতিটি ভাড়ার মোট অনুপাতে — শেষ ভগ্নাংশ প্রথমটায়
+  const advanceShares = (): number[] => {
+    if (previewAdvance <= 0 || previews.length === 0) return previews.map(() => 0);
+    if (grandTotal <= 0) {
+      return previews.map((_, i) => (i === 0 ? previewAdvance : 0));
+    }
+    const shares = previews.map((p) => Math.floor((previewAdvance * p.total) / grandTotal));
+    shares[0] += previewAdvance - shares.reduce((a, b) => a + b, 0);
+    return shares;
   };
 
   const submit = async () => {
@@ -208,18 +255,24 @@ export default function NewRentalScreen() {
         });
         renterId = created.id;
       }
-      await create.mutateAsync({
-        renterId,
-        itemId,
-        quantity: Number(quantity),
-        rate: rate === "" ? undefined : Number(rate),
-        startDate: toDateOnly(startDate),
-        expectedReturnDate: returnDate ? toDateOnly(returnDate) : null,
-        notes: notes.trim() || null,
-        ...(Number(advance) > 0
-          ? { advanceAmount: Number(advance), advanceMethod }
-          : {}),
-      });
+      const shares = advanceShares();
+      for (let i = 0; i < previews.length; i++) {
+        const p = previews[i];
+        await create.mutateAsync({
+          renterId,
+          itemId: p.item.id,
+          quantity: p.qty,
+          rate:
+            rates[p.item.id] === undefined || rates[p.item.id] === ""
+              ? undefined
+              : Number(rates[p.item.id]),
+          rateUnit: p.unit,
+          startDate: toDateOnly(startDate),
+          expectedReturnDate: returnDate ? toDateOnly(returnDate) : null,
+          notes: notes.trim() || null,
+          ...(shares[i] > 0 ? { advanceAmount: shares[i], advanceMethod } : {}),
+        });
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (router.canGoBack()) router.back();
       else router.replace("/(tabs)/rentals");
@@ -230,16 +283,12 @@ export default function NewRentalScreen() {
 
   const busy = create.isPending || saveRenter.isPending;
 
-  // হিসাবের প্রিভিউ — সার্ভার যেভাবে গুনবে সেভাবেই
-  const previewQty = Number(quantity) || 0;
-  const previewRate = rate === "" ? (item ? Number(item.rate) : 0) : Number(rate) || 0;
-  const previewPeriods =
-    item && returnDate ? billingPeriods(startDate, returnDate, item.rateUnit) : 1;
-  const previewTotal = previewQty * previewRate * previewPeriods;
-  const previewAdvance = Number(advance) || 0;
-  const unitWord = item?.rateUnit === "MONTHLY" ? "মাস" : "দিন";
-
   const renterLabel = matched?.name ?? newName.trim();
+  const totalQty = previews.reduce((sum, p) => sum + p.qty, 0);
+  const itemChipLabel =
+    selectedItems.length > 1
+      ? `${selectedItems[0].name} +${bn(selectedItems.length - 1)}`
+      : selectedItems[0]?.name;
 
   return (
     <>
@@ -260,9 +309,9 @@ export default function NewRentalScreen() {
         {/* আগের ধাপে যা বাছাই হয়েছে — চিপে ট্যাপ করলে সেই ধাপে ফেরা যায় */}
         {step > 0 && (
           <View style={styles.recapRow}>
-            {item && (
+            {!!itemChipLabel && (
               <Chip compact icon="package-variant" onPress={() => goTo(0)}>
-                {item.name}
+                {itemChipLabel}
               </Chip>
             )}
             {step > 1 && !!renterLabel && (
@@ -270,9 +319,9 @@ export default function NewRentalScreen() {
                 {renterLabel}
               </Chip>
             )}
-            {step > 2 && !!Number(quantity) && (
+            {step > 2 && totalQty > 0 && (
               <Chip compact icon="counter" onPress={() => goTo(2)}>
-                {`${bn(Number(quantity))}টি`}
+                {`${bn(totalQty)}টি`}
               </Chip>
             )}
           </View>
@@ -292,8 +341,16 @@ export default function NewRentalScreen() {
                   </Button>
                 </View>
               )}
+              {availableItems.length > 0 && (
+                <Text
+                  variant="bodySmall"
+                  style={[styles.multiHint, { color: theme.colors.onSurfaceVariant }]}
+                >
+                  একসাথে একাধিক মালামালও বাছাই করা যায়
+                </Text>
+              )}
               {availableItems.map((i) => {
-                const selected = i.id === itemId;
+                const selected = itemIds.includes(i.id);
                 return (
                   <TouchableRipple
                     key={i.id}
@@ -306,7 +363,7 @@ export default function NewRentalScreen() {
                           : theme.colors.surfaceVariant,
                       },
                     ]}
-                    onPress={() => selectItem(i.id)}
+                    onPress={() => toggleItem(i.id)}
                   >
                     <View style={styles.itemCardInner}>
                       <Icon
@@ -373,25 +430,55 @@ export default function NewRentalScreen() {
 
           {step === 2 && (
             <View>
-              <TextInput
-                label={item ? `পরিমাণ (আছে ${bn(item.availableQuantity)}টি)` : "পরিমাণ"}
-                value={quantity}
-                onChangeText={setQuantity}
-                keyboardType="number-pad"
-                style={styles.input}
-              />
-              <TextInput
-                label={
-                  item
-                    ? `ভাড়ার হার (${taka(item.rate)} ${rateUnitLabel(item.rateUnit)})`
-                    : "ভাড়ার হার (ঐচ্ছিক)"
-                }
-                value={rate}
-                onChangeText={setRate}
-                keyboardType="decimal-pad"
-                placeholder={item ? String(item.rate) : ""}
-                style={styles.input}
-              />
+              {selectedItems.map((it) => (
+                <View key={it.id}>
+                  {selectedItems.length > 1 && (
+                    <Text variant="titleSmall" style={styles.itemHeader}>
+                      {`${it.name} (আছে ${bn(it.availableQuantity)}টি)`}
+                    </Text>
+                  )}
+                  {/* ভাড়াটা কোন হিসাবে — এককালীন মানে যতদিনই রাখুক, এক দাম */}
+                  <SegmentedButtons
+                    value={unitOf(it)}
+                    onValueChange={(v) =>
+                      setUnits((prev) => ({ ...prev, [it.id]: v as RateUnit }))
+                    }
+                    buttons={[
+                      { value: "DAILY", label: "দৈনিক" },
+                      { value: "MONTHLY", label: "মাসিক" },
+                      { value: "FLAT", label: "এককালীন" },
+                    ]}
+                    style={styles.unitRow}
+                  />
+                  <View style={styles.qtyRow}>
+                    <TextInput
+                      label={
+                        selectedItems.length > 1
+                          ? "পরিমাণ"
+                          : `পরিমাণ (আছে ${bn(it.availableQuantity)}টি)`
+                      }
+                      value={quantities[it.id] ?? ""}
+                      onChangeText={(v) =>
+                        setQuantities((prev) => ({ ...prev, [it.id]: v }))
+                      }
+                      keyboardType="number-pad"
+                      style={styles.qtyInput}
+                    />
+                    <TextInput
+                      label={
+                        unitOf(it) === "FLAT"
+                          ? "দাম (৳ প্রতিটি)"
+                          : `হার (${taka(it.rate)} ${rateUnitLabel(it.rateUnit)})`
+                      }
+                      value={rates[it.id] ?? ""}
+                      onChangeText={(v) => setRates((prev) => ({ ...prev, [it.id]: v }))}
+                      keyboardType="decimal-pad"
+                      placeholder={String(it.rate)}
+                      style={styles.qtyInput}
+                    />
+                  </View>
+                </View>
+              ))}
               <View style={styles.dateRow}>
                 <Button mode="outlined" icon="calendar" onPress={() => setDatePicker("start")}>
                   {`শুরু: ${bnDate(startDate)}`}
@@ -434,21 +521,31 @@ export default function NewRentalScreen() {
                 style={styles.input}
               />
 
-              {item && previewTotal > 0 ? (
+              {grandTotal > 0 ? (
                 <View
                   style={[styles.summary, { backgroundColor: theme.colors.surfaceVariant }]}
                 >
+                  {previews.map((p) => (
+                    <View key={p.item.id} style={styles.summaryRow}>
+                      <Text variant="bodyMedium" style={styles.summaryLabel}>
+                        {`${p.item.name} (${bn(p.qty)}টি × ${taka(p.rate)}${
+                          returnDate && p.unit !== "FLAT"
+                            ? ` × ${bn(p.periods)} ${p.unit === "MONTHLY" ? "মাস" : "দিন"}`
+                            : ""
+                        })`}
+                      </Text>
+                      <Text variant="bodyMedium">
+                        {returnDate || p.unit === "FLAT"
+                          ? taka(p.total)
+                          : `${taka(p.total)} ${rateUnitLabel(p.unit)}`}
+                      </Text>
+                    </View>
+                  ))}
                   <View style={styles.summaryRow}>
                     <Text variant="bodyMedium" style={styles.summaryLabel}>
-                      {`মোট ভাড়া (${bn(previewQty)}টি × ${taka(previewRate)}${
-                        returnDate ? ` × ${bn(previewPeriods)} ${unitWord}` : ""
-                      })`}
+                      মোট ভাড়া
                     </Text>
-                    <Text variant="titleMedium">
-                      {returnDate
-                        ? taka(previewTotal)
-                        : `${taka(previewTotal)} ${rateUnitLabel(item.rateUnit)}`}
-                    </Text>
+                    <Text variant="titleMedium">{`${taka(grandTotal)}${grandUnitSuffix}`}</Text>
                   </View>
                   <View style={styles.summaryRow}>
                     <Text variant="bodyMedium" style={styles.summaryLabel}>
@@ -466,12 +563,12 @@ export default function NewRentalScreen() {
                       variant="titleMedium"
                       style={{
                         color:
-                          previewTotal - previewAdvance > 0
+                          grandTotal - previewAdvance > 0
                             ? theme.colors.loss
                             : theme.colors.income,
                       }}
                     >
-                      {taka(previewTotal - previewAdvance)}
+                      {taka(grandTotal - previewAdvance)}
                     </Text>
                   </View>
                 </View>
@@ -543,6 +640,7 @@ const styles = StyleSheet.create({
   stepTitle: { marginTop: 2, marginBottom: 12 },
   recapRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 },
   cardList: { gap: 10 },
+  multiHint: { marginBottom: 2, marginLeft: 4 },
   itemCard: { borderRadius: 14 },
   itemCardInner: {
     flexDirection: "row",
@@ -552,14 +650,17 @@ const styles = StyleSheet.create({
   },
   itemCardText: { flex: 1 },
   emptyBox: { alignItems: "center", gap: 12, paddingVertical: 24 },
-  emptyText: { textAlign: "center" },
+  // alignSelf stretch — বাংলা টেক্সটের intrinsic মাপে শেষ শব্দ কাটা পড়ে
+  emptyText: { textAlign: "center", alignSelf: "stretch" },
   input: { marginBottom: 12 },
   inputTight: { marginBottom: 2 },
   renterHint: { marginBottom: 12, marginLeft: 4, minHeight: 18 },
+  itemHeader: { marginBottom: 8 },
+  unitRow: { marginBottom: 10 },
+  qtyRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  qtyInput: { flex: 1 },
   dateRow: { gap: 8, marginBottom: 12 },
   summary: { borderRadius: 12, padding: 14, gap: 6, marginBottom: 4 },
-  // বাংলা টেক্সটের intrinsic মাপ Android-এ ছোট আসে — নির্দিষ্ট width না দিলে শেষ শব্দ কাটা পড়ে
-  summaryLabel: { flex: 1 },
   summaryEmpty: { textAlign: "center", paddingVertical: 12 },
   summaryRow: {
     flexDirection: "row",
@@ -567,6 +668,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  // বাংলা টেক্সটের intrinsic মাপ Android-এ ছোট আসে — নির্দিষ্ট width না দিলে শেষ শব্দ কাটা পড়ে
+  summaryLabel: { flex: 1 },
   navRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   navSpacer: { flex: 1 },
   nextContent: { flexDirection: "row-reverse" },

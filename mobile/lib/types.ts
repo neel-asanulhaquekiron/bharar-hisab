@@ -1,4 +1,5 @@
-export type RateUnit = "DAILY" | "MONTHLY";
+// FLAT = যতদিনই রাখুক, পুরো ভাড়ার জন্য এক দাম
+export type RateUnit = "DAILY" | "MONTHLY" | "FLAT";
 export type RentalStatus = "ACTIVE" | "PARTIAL" | "RETURNED";
 
 export type User = { id: string; name: string; email: string };
@@ -18,7 +19,7 @@ export type Item = {
   description: string | null;
   totalQuantity: number;
   rate: string; // Prisma Decimal serializes as string
-  rateUnit: RateUnit;
+  rateUnit: "DAILY" | "MONTHLY"; // মালামালের নিজের হিসাব — FLAT শুধু ভাড়া-প্রতি বাছাই
   previousIncome: string;
   createdAt: string;
   outQuantity: number;

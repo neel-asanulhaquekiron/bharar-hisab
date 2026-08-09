@@ -23,7 +23,8 @@ export function bnDate(value: string | Date): string {
   return `${bn(d.getDate())} ${BN_MONTHS[d.getMonth()]} ${bn(d.getFullYear())}`;
 }
 
-export function rateUnitLabel(unit: "DAILY" | "MONTHLY"): string {
+export function rateUnitLabel(unit: "DAILY" | "MONTHLY" | "FLAT"): string {
+  if (unit === "FLAT") return "এককালীন";
   return unit === "DAILY" ? "দৈনিক" : "মাসিক";
 }
 

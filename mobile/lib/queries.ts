@@ -152,6 +152,7 @@ export type RentalInput = {
   itemId: string;
   quantity: number;
   rate?: number;
+  rateUnit?: "DAILY" | "MONTHLY" | "FLAT";
   startDate?: string;
   expectedReturnDate?: string | null;
   notes?: string | null;
