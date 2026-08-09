@@ -23,6 +23,8 @@ const createSchema = z.object({
   itemId: z.string().uuid(),
   quantity: z.number().int().min(1),
   rate: z.number().min(0).optional(),
+  // ভাড়াটা কোন হিসাবে — না দিলে মালামালের নিজের হিসাব
+  rateUnit: z.enum(["DAILY", "MONTHLY", "FLAT"]).optional(),
   startDate: z.coerce.date().optional(),
   expectedReturnDate: z.coerce.date().nullish(),
   notes: z.string().nullish(),
@@ -66,7 +68,7 @@ rentalsRouter.post("/", async (req, res) => {
       itemId: item.id,
       quantity: body.quantity,
       rate: body.rate ?? item.rate,
-      rateUnit: item.rateUnit,
+      rateUnit: body.rateUnit ?? item.rateUnit,
       startDate,
       expectedReturnDate: body.endDate ? null : (body.expectedReturnDate ?? null),
       notes: body.notes ?? null,

@@ -5,8 +5,10 @@ import type { Payment, RateUnit, Rental } from "@prisma/client";
  * DAILY — every started day counts (same-day rental = 1 day).
  * MONTHLY — every started month counts (rented Jan 5, returned Feb 5 = 1 month;
  * Feb 6 = 2 months).
+ * FLAT — one fixed charge for the whole rental, however long it runs.
  */
 export function billingPeriods(start: Date, end: Date, unit: RateUnit): number {
+  if (unit === "FLAT") return 1;
   if (end <= start) return 1;
   if (unit === "DAILY") {
     return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
